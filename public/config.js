@@ -1,4 +1,4 @@
 window.APP_CONFIG = {
-  apiBase: 'https://trae05is1njt-five.vercel.app',
-  defaultApiKey: 'dev'
+  apiBase: window.location.hostname === 'localhost' ? '' : 'https://trae05is1njt-five.vercel.app',
+  defaultApiKey: 'dev-key-12345'
 };

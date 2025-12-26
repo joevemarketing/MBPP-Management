@@ -1,24 +1,33 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#22d3ee" />
-    <title>MBPP Smart Waste Dashboard</title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
-    <link rel="stylesheet" href="/styles.css" />
-  </head>
-  <body>
-    <header>
-      <h1><img src="/logo.jpeg" alt="Logo" class="logo" /><span class="brand">MBPP</span> Smart Waste Dashboard</h1>
-      <div class="actions">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MBPP Management</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♻</text></svg>">
+</head>
+<body>
+  <header class="header">
+    <div class="header-content">
+      <div class="logo">
+        <img src="logo.jpeg" alt="MBPP Smart Management" style="height: 40px; border-radius: var(--radius-sm);" />
+      </div>
+      <div class="header-right">
+        <div id="userInfo">
+          <span id="userName">Loading...</span>
+          <span id="userRole" class="badge"></span>
+        </div>
         <div id="status">Loading…</div>
+        <div id="updatedAt" style="display:none;"></div>
+        <div id="selectedBinCount" style="display:none;">0</div>
         <button id="themeToggle" class="toggle" aria-label="Toggle theme">Theme</button>
         <button id="downloadPdf" class="btn secondary">Download PDF</button>
+        <button id="logoutBtn" class="btn secondary">Logout</button>
         <label class="toggle" style="gap:4px"><input type="checkbox" id="showTrails"/> Trails</label>
         <label class="toggle" style="gap:4px"><input type="checkbox" id="followDevice"/> Follow</label>
         <select id="deviceSelect" class="toggle" aria-label="Device"></select>
@@ -29,137 +38,134 @@
         <input id="apiKeyInput" placeholder="API key" class="toggle" style="width:140px" />
         <button id="saveApi" class="btn">Save</button>
       </div>
-    </header>
-    <main>
-      <section class="left">
-        <div id="map"></div>
-      </section>
-      <section class="right">
-        <div class="panel">
-          <h2>Overview</h2>
-          <div class="kpi-cards">
-            <div class="kpi-card"><div class="metric" id="kpiVehiclesService">—</div><div class="label">Vehicles in service</div></div>
-            <div class="kpi-card"><div class="metric" id="kpiTotalVehicles">—</div><div class="label">Total vehicles</div></div>
-            <div class="kpi-card"><div class="metric" id="kpiActiveContractors">—</div><div class="label">Active contractors</div></div>
-            <div class="kpi-card"><div class="metric" id="kpiTasksFinished">—</div><div class="label">Tasks finished</div></div>
-            <div class="kpi-card"><div class="metric" id="kpiTasksUnfinished">—</div><div class="label">Tasks unfinished</div></div>
-          </div>
-        </div>
-        <div class="panel">
-          <h2>Totals</h2>
-          <div id="totals" class="list"></div>
-        </div>
-        <div class="panel">
-          <h2>Contractors</h2>
-          <div id="contractors" class="list"></div>
-          <div class="actions"><button id="addContractorBtn" class="btn">Add Contractor</button></div>
-        </div>
-        <div class="panel">
-          <h2>Vehicles</h2>
-          <div id="vehicles" class="list"></div>
-          <div class="actions"><button id="addVehicleBtn" class="btn">Add Vehicle</button></div>
-        </div>
-        <div class="panel">
-          <h2>Analytics</h2>
-          <div class="analytics">
-            <div class="chart-card">
-              <canvas id="contractorChart"></canvas>
-            </div>
-            <div class="chart-card">
-              <canvas id="statusChart"></canvas>
-            </div>
-          </div>
-        </div>
-        <div class="panel">
-          <h2>Tasks</h2>
-          <table class="table" id="tasksTable">
-            <thead><tr><th>ID</th><th>Title</th><th>Status</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-        <div class="footer">Updated <span id="updatedAt">—</span></div>
-      </section>
-    </main>
-    <div class="modal-backdrop" id="modalBackdrop"></div>
-    <div class="modal" id="contractorModal">
-      <header>
-        <h3 id="modalTitle">Contractor</h3>
-        <button id="modalClose" class="btn secondary">Close</button>
-      </header>
-      <div class="content">
-        <div class="panel">
-          <h2>Summary</h2>
-          <div class="summary">
-            <div><span>Company name</span><span id="summaryCompanyName" class="badge">—</span></div>
-            <div><span>Registered vehicles</span><span id="summaryRegisteredVehicles" class="badge">—</span></div>
-            <div><span>Company reg. no.</span><span id="summaryRegNo" class="badge">—</span></div>
-          </div>
-        </div>
-        <div class="panel">
-          <h2>KPIs</h2>
-          <div class="kpi">
-            <div>On-time rate <span id="kpiOnTimeLabel" class="badge"></span></div>
-            <div class="bar"><div id="kpiOnTimeBar"></div></div>
-            <div>Collection efficiency <span id="kpiEfficiencyLabel" class="badge"></span></div>
-            <div class="bar"><div id="kpiEfficiencyBar"></div></div>
-          </div>
-        </div>
-        <div class="panel">
-          <h2>Vehicles</h2>
-          <input id="vehicleFilter" placeholder="Filter by plate or type" />
-          <table class="table" id="vehicleTable">
-            <thead><tr><th>Plate</th><th>Type</th><th>Capacity (kg)</th></tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="actions">
-        <button id="modalOk" class="btn">OK</button>
-      </div>
     </div>
-    <div class="modal" id="contractorManageModal">
-      <header>
-        <h3>New Contractor</h3>
-        <button id="contractorManageClose" class="btn secondary">Close</button>
-      </header>
-      <div class="content">
-        <div class="panel">
-          <h2>Details</h2>
-          <div class="form">
-            <label>Name <input id="cName" /></label>
-            <label>Company Registration No <input id="cRegNo" /></label>
-          </div>
+  </header>
+  <main>
+    <!-- Left Column: Smart Bins -->
+    <section class="top-left">
+      <div class="panel">
+        <h2>Alerts</h2>
+        <div id="alerts" class="alerts-list"></div>
+      </div>
+      <div class="panel">
+        <h2>Smart Bins</h2>
+        <div class="bin-filters">
+          <select id="binAreaFilter" class="filter-select">
+            <option value="">All Areas</option>
+          </select>
+          <select id="binStatusFilter" class="filter-select">
+            <option value="">All Status</option>
+            <option value="normal">Normal (&lt;50%)</option>
+            <option value="medium">Medium (50-75%)</option>
+            <option value="high">High (75-90%)</option>
+            <option value="critical">Critical (&gt;90%)</option>
+          </select>
         </div>
+        <div class="bins-grid" id="smartBins"></div>
       </div>
-      <div class="actions">
-        <button id="contractorManageSave" class="btn">Save</button>
-      </div>
-    </div>
+    </section>
 
-    <div class="modal" id="vehicleManageModal">
-      <header>
-        <h3>New Vehicle</h3>
-        <button id="vehicleManageClose" class="btn secondary">Close</button>
-      </header>
-      <div class="content">
-        <div class="panel">
-          <h2>Details</h2>
-          <div class="form">
-            <label>Vehicle Registration Plate <input id="vPlate" /></label>
-            <label>Type <input id="vType" /></label>
-            <label>Capacity (kg) <input id="vCap" type="number" /></label>
-            <label>Contractor <select id="vContractor"></select></label>
+    <!-- Center Column: Map View + Analytics -->
+    <section class="top-right">
+      <div class="panel">
+        <h2>Map View</h2>
+        <div id="map"></div>
+      </div>
+      <div class="panel">
+        <h2>Overview</h2>
+        <div class="kpi-cards">
+          <div class="kpi-card"><div class="metric" id="kpiTotalBins">—</div><div class="label">Total bins</div></div>
+          <div class="kpi-card"><div class="metric critical" id="kpiCriticalBins">—</div><div class="label">Critical bins</div></div>
+          <div class="kpi-card"><div class="metric" id="kpiVehiclesService">—</div><div class="label">Vehicles in service</div></div>
+          <div class="kpi-card"><div class="metric" id="kpiPendingTasks">—</div><div class="label">Pending tasks</div></div>
+          <div class="kpi-card"><div class="metric" id="kpiUnreadAlerts">—</div><div class="label">Unread alerts</div></div>
+        </div>
+      </div>
+      <div class="panel">
+        <h2>Advanced Analytics</h2>
+        <div class="analytics">
+          <div class="chart-card">
+            <h3 style="margin: 0 0 8px 0; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px;">Bin Fill Levels</h3>
+            <canvas id="fillLevelChart"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3 style="margin: 0 0 8px 0; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px;">Collection Performance</h3>
+            <canvas id="collectionPerformanceChart"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3 style="margin: 0 0 8px 0; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px;">Waste Collection Trends</h3>
+            <canvas id="wasteTrendsChart"></canvas>
+          </div>
+          <div class="chart-card">
+            <h3 style="margin: 0 0 8px 0; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px;">Contractor Efficiency</h3>
+            <canvas id="contractorEfficiencyChart"></canvas>
           </div>
         </div>
       </div>
-      <div class="actions">
-        <button id="vehicleManageSave" class="btn">Save</button>
+    </section>
+
+
+      <div class="panel">
+        <h2>Vehicles</h2>
+        <div id="vehicles" class="list"></div>
+        <div class="actions"><button id="addVehicleBtn" class="btn">Add Vehicle</button></div>
+      </div>
+      <div class="panel">
+        <h2>Contractors</h2>
+        <div id="contractors" class="list"></div>
+        <div class="actions"><button id="addContractorBtn" class="btn">Add Contractor</button></div>
+      </div>
+      <div class="panel">
+        <h2>Tasks</h2>
+        <div class="task-controls">
+          <button id="createTaskBtn" class="btn">Create Task</button>
+          <select id="taskStatusFilter" class="filter-select">
+            <option value="">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+        <table class="table" id="tasksTable">
+          <thead><tr><th>ID</th><th>Title</th><th>Status</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Updated Indicator -->
+  <div class="update-indicator" id="updateIndicator">
+    <span class="pulse"></span>
+    Last Updated: <span id="lastUpdated">Loading...</span>
+  </div>
+
+  <!-- Modals -->
+  <div class="modal-backdrop" id="modalBackdrop"></div>
+  <div class="modal" id="contractorModal">
+    <header>
+      <h3 id="modalTitle">Contractor</h3>
+      <button id="modalClose" class="btn secondary">Close</button>
+    </header>
+    <div class="content">
+      <div class="panel">
+        <h2>Summary</h2>
+        <div class="summary">
+          <div><span>Company name</span><span id="summaryCompanyName" class="badge">—</span></div>
+          <div><span>Registered vehicles</span><span id="summaryRegisteredVehicles" class="badge">—</span></div>
+          <div><span>Company reg. no.</span><span id="summaryRegNo" class="badge">—</span></div>
+        </div>
+        <div class="panel">
+          <h2>Efficiency</h2>
+          <div class="efficiency">
+            <div><span>On-time pickup</span><span id="kpiOnTimeLabel" class="badge">—%</span></div>
+            <div><span>Efficiency</span><span id="kpiEfficiencyLabel" class="badge">—%</span></div>
+          </div>
+        </div>
       </div>
     </div>
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
-    <script src="https://unpkg.com/chart.js@4.4.1/dist/chart.umd.js" crossorigin=""></script>
-    <script src="https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js" crossorigin=""></script>
-    <script src="/config.js"></script>
-    <script src="/app.js"></script>
-  </body>
-  </html>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
