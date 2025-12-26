@@ -203,25 +203,21 @@
     <!-- Modals -->
   <div class="modal-backdrop" id="modalBackdrop"></div>
   <div class="modal" id="contractorModal">
-    <header>
-      <h3 id="modalTitle">Contractor</h3>
-      <button id="modalClose" class="btn secondary">Close</button>
-    </header>
-    <div class="content">
-      <div class="panel">
-        <h2>Summary</h2>
-        <div class="summary">
-          <div><span>Company name</span><span id="summaryCompanyName" class="badge">—</span></div>
-          <div><span>Registered vehicles</span><span id="summaryRegisteredVehicles" class="badge">—</span></div>
-          <div><span>Company reg. no.</span><span id="summaryRegNo" class="badge">—</span></div>
-        </div>
+      <header>
+        <h3>New Contractor</h3>
+        <button id="contractorManageClose" class="btn secondary">Close</button>
+      </header>
+      <div class="content">
         <div class="panel">
-          <h2>Efficiency</h2>
-          <div class="efficiency">
-            <div><span>On-time pickup</span><span id="kpiOnTimeLabel" class="badge">—%</span></div>
-            <div><span>Efficiency</span><span id="kpiEfficiencyLabel" class="badge">—%</span></div>
+          <h2>Contractor Details</h2>
+          <div class="form">
+            <label>Company Name <input id="cName" /></label>
+            <label>Registration Number <input id="cRegNo" /></label>
           </div>
         </div>
+      </div>
+      <div class="actions">
+        <button id="contractorManageSave" class="btn">Save</button>
       </div>
     </div>
   </div>

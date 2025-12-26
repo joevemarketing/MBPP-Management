@@ -241,7 +241,7 @@
   const vehicleTable = document.getElementById('vehicleTable');
   const vehicleFilter = document.getElementById('vehicleFilter');
   const addContractorBtn = document.getElementById('addContractorBtn');
-  const contractorManageModal = document.getElementById('contractorManageModal');
+  const contractorManageModal = document.getElementById('contractorModal');
   const contractorManageClose = document.getElementById('contractorManageClose');
   const contractorManageSave = document.getElementById('contractorManageSave');
   const cName = document.getElementById('cName');
@@ -553,7 +553,7 @@ const charts = {};
 
   function showModal(){ contractorModal.classList.add('show'); modalBackdrop.classList.add('show'); document.body.classList.add('modal-open'); }
   function hideModal(){ contractorModal.classList.remove('show'); modalBackdrop.classList.remove('show'); document.body.classList.remove('modal-open'); }
-  modalClose.addEventListener('click', hideModal);
+  modalClose?.addEventListener('click', hideModal);
   modalOk?.addEventListener('click', hideModal);
   modalBackdrop.addEventListener('click', () => {
     hideModal();
