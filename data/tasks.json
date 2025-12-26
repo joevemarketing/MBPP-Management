@@ -1,0 +1,6 @@
+[
+  { "id": 101, "title": "Zone A collection", "status": "finished", "contractorId": 10 },
+  { "id": 102, "title": "Zone B collection", "status": "unfinished", "contractorId": 11 },
+  { "id": 103, "title": "Bulky pickup - Jelutong", "status": "unfinished", "contractorId": 10 },
+  { "id": 104, "title": "Street sweeping - Georgetown", "status": "finished", "contractorId": 11 }
+]

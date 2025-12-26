@@ -1,0 +1,19 @@
+[
+  {
+    "id": 10,
+    "name": "Contractor A",
+    "kpi": {
+      "onTimeRate": 0.95,
+      "collectionEfficiency": 0.88
+    }
+  },
+  {
+    "id": 11,
+    "name": "Contractor B",
+    "kpi": {
+      "onTimeRate": 0.91,
+      "collectionEfficiency": 0.81
+    }
+  }
+]
+

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MBPP Smart Waste Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <link rel="stylesheet" href="/public/styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>MBPP Smart Waste Dashboard</h1>
+      <div id="status"></div>
+    </header>
+    <main>
+      <section class="left">
+        <div id="map"></div>
+      </section>
+      <section class="right">
+        <div class="panel">
+          <h2>Totals</h2>
+          <div id="totals"></div>
+        </div>
+        <div class="panel">
+          <h2>Contractors</h2>
+          <div id="contractors"></div>
+        </div>
+        <div class="panel">
+          <h2>Vehicles</h2>
+          <div id="vehicles"></div>
+        </div>
+      </section>
+    </main>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <script src="/public/app.js"></script>
+  </body>
+  </html>
+

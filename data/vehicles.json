@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "plate": "PMG 1234",
+    "type": "Compactor",
+    "capacityKg": 8000,
+    "contractorId": 10,
+    "traccar_device_id": 1
+  },
+  {
+    "id": 2,
+    "plate": "PMG 5678",
+    "type": "Tipper",
+    "capacityKg": 5000,
+    "contractorId": 11,
+    "traccar_device_id": 2
+  }
+]
