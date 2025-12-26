@@ -565,10 +565,10 @@ const charts = {};
   // Escape key handler for modals
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      hideModal();
-      hideContractorManage();
-      hideVehicleManage();
-      hideTaskManage();
+      try { hideModal(); } catch {}
+      try { hideContractorManage(); } catch {}
+      try { hideVehicleManage(); } catch {}
+      try { hideTaskManage(); } catch {}
     }
   });
 

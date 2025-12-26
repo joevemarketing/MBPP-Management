@@ -140,7 +140,67 @@
     Last Updated: <span id="lastUpdated">Loading...</span>
   </div>
 
-  <!-- Modals -->
+    <div class="modal" id="vehicleManageModal">
+      <header>
+        <h3>New Vehicle</h3>
+        <button id="vehicleManageClose" class="btn secondary">Close</button>
+      </header>
+      <div class="content">
+        <div class="panel">
+          <h2>Details</h2>
+          <div class="form">
+            <label>Vehicle Registration Plate <input id="vPlate" /></label>
+            <label>Type <input id="vType" /></label>
+            <label>Capacity (kg) <input id="vCap" type="number" /></label>
+            <label>Contractor <select id="vContractor"></select></label>
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="vehicleManageSave" class="btn">Save</button>
+      </div>
+    </div>
+
+    <div class="modal" id="taskManageModal">
+      <header>
+        <h3>New Task</h3>
+        <button id="taskManageClose" class="btn secondary">Close</button>
+      </header>
+      <div class="content">
+        <div class="panel">
+          <h2>Task Details</h2>
+          <div class="form">
+            <label>Task Title <input id="tTitle" /></label>
+            <label>Description <textarea id="tDescription" rows="3"></textarea></label>
+            <label>Priority 
+              <select id="tPriority">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </label>
+            <label>Assigned Vehicle 
+              <select id="tVehicle">
+                <option value="">Select Vehicle</option>
+              </select>
+            </label>
+            <label>Assigned Contractor 
+              <select id="tContractor">
+                <option value="">Select Contractor</option>
+              </select>
+            </label>
+            <label>Scheduled Date & Time <input id="tScheduled" type="datetime-local" /></label>
+            <label>Bin ID <input id="tBinId" placeholder="e.g., BIN001" /></label>
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="taskManageSave" class="btn">Save</button>
+      </div>
+    </div>
+    
+    <!-- Modals -->
   <div class="modal-backdrop" id="modalBackdrop"></div>
   <div class="modal" id="contractorModal">
     <header>
@@ -166,6 +226,20 @@
     </div>
   </div>
 
-  <script src="app.js"></script>
+  <script src="/config.js"></script>
+  <script>
+    // Check authentication
+    if (!localStorage.getItem('authToken')) {
+      window.location.href = '/login';
+    }
+    
+    // Set auth header for API calls
+    const authToken = localStorage.getItem('authToken');
+    if (authToken) {
+      window.APP_CONFIG = window.APP_CONFIG || {};
+      window.APP_CONFIG.authToken = authToken;
+    }
+  </script>
+  <script src="/app.js"></script>
 </body>
 </html>
