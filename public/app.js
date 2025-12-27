@@ -803,9 +803,9 @@ const charts = {};
     list.forEach(c => {
       const div = document.createElement('div');
       div.className = 'item';
-      div.innerHTML = `<span>${c.name}</span><span class="badge">${c.vehicles} vehicles</span>`;
+      div.innerHTML = `<span>${c.name}</span><span class="badge">${c.vehicles || 0} vehicles</span>`;
       div.dataset.contractorId = c.contractorId ?? c.id;
-      div.addEventListener('click', () => showContractorDetails(div.dataset.contractorId));
+      div.addEventListener('click', () => showContractorSettings(div.dataset.contractorId));
       el.appendChild(div);
     });
   }
@@ -947,10 +947,297 @@ const charts = {};
     }
   });
 
-  function showContractorManage(){ contractorManageModal.classList.add('show'); modalBackdrop.classList.add('show'); document.body.classList.add('modal-open'); }
-  function hideContractorManage(){ contractorManageModal.classList.remove('show'); modalBackdrop.classList.remove('show'); document.body.classList.remove('modal-open'); }
-  addContractorBtn?.addEventListener('click', showContractorManage);
-  contractorManageClose?.addEventListener('click', hideContractorManage);
+  // Enhanced Contractor Management Functions
+  function showContractorSettings(contractorId = null) {
+    const modal = document.getElementById('contractorSettingsModal');
+    const title = document.getElementById('contractorSettingsTitle');
+    
+    if (contractorId) {
+      title.textContent = 'Edit Contractor';
+      loadContractorData(contractorId);
+    } else {
+      title.textContent = 'Add New Contractor';
+      clearContractorForm();
+    }
+    
+    modal.classList.add('show');
+    modalBackdrop.classList.add('show');
+    document.body.classList.add('modal-open');
+  }
+  
+  function hideContractorSettings() {
+    const modal = document.getElementById('contractorSettingsModal');
+    modal.classList.remove('show');
+    modalBackdrop.classList.remove('show');
+    document.body.classList.remove('modal-open');
+  }
+  
+  function loadContractorData(contractorId) {
+    // Load contractor data from API
+    fetch(`/api/contractors/${contractorId}`, { headers })
+      .then(res => res.json())
+      .then(contractor => {
+        document.getElementById('contractorId').value = contractor.id;
+        document.getElementById('cName').value = contractor.name || '';
+        document.getElementById('cRegNo').value = contractor.registration_no || '';
+        document.getElementById('cContactPerson').value = contractor.contact_person || '';
+        document.getElementById('cEmail').value = contractor.email || '';
+        document.getElementById('cPhone').value = contractor.phone || '';
+        document.getElementById('cAddress').value = contractor.address || '';
+        document.getElementById('cContractStart').value = contractor.contract_start || '';
+        document.getElementById('cContractEnd').value = contractor.contract_end || '';
+        document.getElementById('cMonthlyRate').value = contractor.monthly_rate || '';
+        document.getElementById('cSLA').value = contractor.sla || '';
+        document.getElementById('cStatus').value = contractor.status || 'active';
+        
+        // Set service areas
+        const serviceAreas = document.getElementById('cServiceAreas');
+        Array.from(serviceAreas.options).forEach(option => {
+          option.selected = contractor.service_areas?.includes(option.value) || false;
+        });
+        
+        // Set specialties
+        const specialties = document.getElementById('cSpecialties');
+        Array.from(specialties.options).forEach(option => {
+          option.selected = contractor.specialties?.includes(option.value) || false;
+        });
+        
+        // Load vehicles
+        loadContractorVehicles(contractorId);
+        
+        // Load audit trail
+        loadAuditTrail(contractorId);
+      })
+      .catch(error => {
+        console.error('Failed to load contractor data:', error);
+        showNotification('Failed to load contractor data', 'error');
+      });
+  }
+  
+  function clearContractorForm() {
+    document.getElementById('contractorId').value = '';
+    document.getElementById('cName').value = '';
+    document.getElementById('cRegNo').value = '';
+    document.getElementById('cContactPerson').value = '';
+    document.getElementById('cEmail').value = '';
+    document.getElementById('cPhone').value = '';
+    document.getElementById('cAddress').value = '';
+    document.getElementById('cContractStart').value = '';
+    document.getElementById('cContractEnd').value = '';
+    document.getElementById('cMonthlyRate').value = '';
+    document.getElementById('cSLA').value = '';
+    document.getElementById('cStatus').value = 'active';
+    
+    // Clear service areas
+    const serviceAreas = document.getElementById('cServiceAreas');
+    Array.from(serviceAreas.options).forEach(option => {
+      option.selected = false;
+    });
+    
+    // Clear specialties
+    const specialties = document.getElementById('cSpecialties');
+    Array.from(specialties.options).forEach(option => {
+      option.selected = false;
+    });
+    
+    // Clear vehicles list
+    document.getElementById('contractorVehiclesList').innerHTML = '';
+    
+    // Clear audit trail
+    document.getElementById('contractorAuditList').innerHTML = '';
+  }
+  
+  function validateContractorForm() {
+    const name = document.getElementById('cName').value.trim();
+    const regNo = document.getElementById('cRegNo').value.trim();
+    const email = document.getElementById('cEmail').value.trim();
+    
+    if (!name) {
+      showNotification('Please enter company name', 'error');
+      return false;
+    }
+    
+    if (!regNo) {
+      showNotification('Please enter registration number', 'error');
+      return false;
+    }
+    
+    if (email && !isValidEmail(email)) {
+      showNotification('Please enter a valid email address', 'error');
+      return false;
+    }
+    
+    return true;
+  }
+  
+  function isValidEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+  
+  function saveContractor() {
+    if (!validateContractorForm()) return;
+    
+    const contractorId = document.getElementById('contractorId').value;
+    const isEdit = contractorId !== '';
+    
+    const serviceAreas = Array.from(document.getElementById('cServiceAreas').selectedOptions)
+      .map(option => option.value);
+    
+    const specialties = Array.from(document.getElementById('cSpecialties').selectedOptions)
+      .map(option => option.value);
+    
+    const contractorData = {
+      name: document.getElementById('cName').value.trim(),
+      registration_no: document.getElementById('cRegNo').value.trim(),
+      contact_person: document.getElementById('cContactPerson').value.trim(),
+      email: document.getElementById('cEmail').value.trim(),
+      phone: document.getElementById('cPhone').value.trim(),
+      address: document.getElementById('cAddress').value.trim(),
+      service_areas: serviceAreas,
+      specialties: specialties,
+      contract_start: document.getElementById('cContractStart').value,
+      contract_end: document.getElementById('cContractEnd').value,
+      monthly_rate: parseFloat(document.getElementById('cMonthlyRate').value) || 0,
+      sla: document.getElementById('cSLA').value.trim(),
+      status: document.getElementById('cStatus').value
+    };
+    
+    showLoading('Saving contractor...');
+    
+    const url = isEdit ? `/api/contractors/${contractorId}` : '/api/contractors';
+    const method = isEdit ? 'PUT' : 'POST';
+    
+    fetch(url, {
+      method: method,
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(contractorData)
+    })
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      return res.json();
+    })
+    .then(data => {
+      hideLoading();
+      hideContractorSettings();
+      showNotification(isEdit ? 'Contractor updated successfully' : 'Contractor created successfully', 'success');
+      
+      // Refresh contractors list
+      refreshContractorsList();
+      
+      // Log audit entry
+      if (isEdit) {
+        logAuditEntry(contractorId, 'CONTRACTOR_UPDATED', `Updated contractor: ${contractorData.name}`);
+      } else {
+        logAuditEntry(data.id, 'CONTRACTOR_CREATED', `Created contractor: ${contractorData.name}`);
+      }
+    })
+    .catch(error => {
+      hideLoading();
+      console.error('Failed to save contractor:', error);
+      showNotification('Failed to save contractor', 'error');
+    });
+  }
+  
+  function deleteContractor() {
+    const contractorId = document.getElementById('contractorId').value;
+    if (!contractorId) {
+      showNotification('No contractor selected', 'error');
+      return;
+    }
+    
+    const contractorName = document.getElementById('cName').value.trim();
+    
+    if (!confirm(`Are you sure you want to delete contractor "${contractorName}"? This action cannot be undone and will also remove all associated vehicles.`)) {
+      return;
+    }
+    
+    showLoading('Deleting contractor...');
+    
+    fetch(`/api/contractors/${contractorId}`, {
+      method: 'DELETE',
+      headers: headers
+    })
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      return res.json();
+    })
+    .then(data => {
+      hideLoading();
+      hideContractorSettings();
+      showNotification('Contractor deleted successfully', 'success');
+      refreshContractorsList();
+      
+      // Log audit entry
+      logAuditEntry(contractorId, 'CONTRACTOR_DELETED', `Deleted contractor: ${contractorName}`);
+    })
+    .catch(error => {
+      hideLoading();
+      console.error('Failed to delete contractor:', error);
+      showNotification('Failed to delete contractor', 'error');
+    });
+  }
+  
+  // Tab functionality
+  function initContractorSettingsTabs() {
+    const tabButtons = document.querySelectorAll('.contractor-settings-tabs .tab-btn');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabButtons.forEach(button => {
+      button.addEventListener('click', () => {
+        const targetTab = button.getAttribute('data-tab');
+        
+        // Update button states
+        tabButtons.forEach(btn => btn.classList.remove('active'));
+        button.classList.add('active');
+        
+        // Update content visibility
+        tabContents.forEach(content => {
+          if (content.id === `${targetTab}Tab`) {
+            content.classList.add('active');
+          } else {
+            content.classList.remove('active');
+          }
+        });
+      });
+    });
+  }
+  
+  // Event listeners for contractor settings
+  document.getElementById('addContractorBtn')?.addEventListener('click', () => showContractorSettings());
+  document.getElementById('contractorSettingsClose')?.addEventListener('click', hideContractorSettings);
+  document.getElementById('contractorSettingsSave')?.addEventListener('click', saveContractor);
+  document.getElementById('contractorSettingsDelete')?.addEventListener('click', deleteContractor);
+  
+  // Initialize tabs
+  initContractorSettingsTabs();
+  
+  // Update existing contractor list items to be clickable
+  function makeContractorsClickable() {
+    const contractorItems = document.querySelectorAll('#contractors .list-item');
+    contractorItems.forEach(item => {
+      item.style.cursor = 'pointer';
+      item.addEventListener('click', (e) => {
+        const contractorId = item.getAttribute('data-contractor-id');
+        if (contractorId) {
+          showContractorSettings(contractorId);
+        }
+      });
+    });
+  }
+  
+  // Legacy functions for backward compatibility
+  function showContractorManage(){ showContractorSettings(); }
+  function hideContractorManage(){ hideContractorSettings(); }
+  const contractorManageClose = document.getElementById('contractorSettingsClose');
+  const contractorManageSave = document.getElementById('contractorSettingsSave');
   contractorManageSave?.addEventListener('click', async () => {
     try {
       // Validate form elements exist
@@ -1036,34 +1323,294 @@ const charts = {};
     }
   });
 
-  async function showVehicleManage(){ 
-    vehicleManageModal.classList.add('show'); 
-    modalBackdrop.classList.add('show'); 
-    document.body.classList.add('modal-open'); 
+  // Enhanced Vehicle Management Functions
+  function showVehicleManage(vehicleId = null, contractorId = null) {
+    const modal = document.getElementById('vehicleManageModal');
+    const title = document.getElementById('vehicleManageTitle');
     
-    // Ensure contractors are loaded before populating
-    if (contractorsList.length === 0) {
-      console.warn('Contractors list is empty, trying to load...');
-      // Try to load contractors if not already loaded
-      await loadContractors();
+    if (vehicleId) {
+      title.textContent = 'Edit Vehicle';
+      loadVehicleData(vehicleId);
+    } else {
+      title.textContent = 'Add New Vehicle';
+      clearVehicleForm();
+      if (contractorId) {
+        document.getElementById('vContractorId').value = contractorId;
+      }
     }
     
-    // Clear form when opening
-    if (vPlate) vPlate.value = '';
-    if (vType) vType.value = '';
-    if (vCap) vCap.value = '';
-    if (vContractor) vContractor.value = '';
+    modal.classList.add('show');
+    modalBackdrop.classList.add('show');
+    document.body.classList.add('modal-open');
+  }
+  
+  function hideVehicleManage(){ 
+    const modal = document.getElementById('vehicleManageModal');
+    modal.classList.remove('show'); 
+    modalBackdrop.classList.remove('show'); 
+    document.body.classList.remove('modal-open'); 
+  }
+  
+  function loadVehicleData(vehicleId) {
+    fetch(`/api/vehicles/${vehicleId}`, { headers })
+      .then(res => res.json())
+      .then(vehicle => {
+        document.getElementById('vId').value = vehicle.id;
+        document.getElementById('vContractorId').value = vehicle.contractor_id || '';
+        document.getElementById('vPlate').value = vehicle.plate || '';
+        document.getElementById('vType').value = vehicle.type || '';
+        document.getElementById('vCap').value = vehicle.capacity_kg || '';
+        document.getElementById('vYear').value = vehicle.year_of_manufacture || '';
+        document.getElementById('vInsuranceExpiry').value = vehicle.insurance_expiry || '';
+        document.getElementById('vRoadTaxExpiry').value = vehicle.road_tax_expiry || '';
+        document.getElementById('vStatus').value = vehicle.status || 'active';
+        document.getElementById('vTraccarDeviceId').value = vehicle.traccar_device_id || '';
+        
+        // Show delete button for existing vehicles
+        document.getElementById('vehicleManageDelete').style.display = 'inline-block';
+      })
+      .catch(error => {
+        console.error('Failed to load vehicle data:', error);
+        showNotification('Failed to load vehicle data', 'error');
+      });
+  }
+  
+  function clearVehicleForm() {
+    document.getElementById('vId').value = '';
+    document.getElementById('vContractorId').value = '';
+    document.getElementById('vPlate').value = '';
+    document.getElementById('vType').value = 'Compactor';
+    document.getElementById('vCap').value = '';
+    document.getElementById('vYear').value = '';
+    document.getElementById('vInsuranceExpiry').value = '';
+    document.getElementById('vRoadTaxExpiry').value = '';
+    document.getElementById('vStatus').value = 'active';
+    document.getElementById('vTraccarDeviceId').value = '';
     
-    // Repopulate contractors
-    vContractor.innerHTML = '';
-    contractorsList.forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c.contractorId ?? c.id; 
-      opt.textContent = c.name; 
-      vContractor.appendChild(opt);
+    // Hide delete button for new vehicles
+    document.getElementById('vehicleManageDelete').style.display = 'none';
+  }
+  
+  function validateVehicleForm() {
+    const plate = document.getElementById('vPlate').value.trim();
+    const type = document.getElementById('vType').value;
+    const capacity = document.getElementById('vCap').value;
+    
+    if (!plate) {
+      showNotification('Please enter vehicle registration plate', 'error');
+      return false;
+    }
+    
+    if (!type) {
+      showNotification('Please select vehicle type', 'error');
+      return false;
+    }
+    
+    if (!capacity || capacity <= 0) {
+      showNotification('Please enter a valid capacity', 'error');
+      return false;
+    }
+    
+    return true;
+  }
+  
+  function saveVehicle() {
+    if (!validateVehicleForm()) return;
+    
+    const vehicleId = document.getElementById('vId').value;
+    const isEdit = vehicleId !== '';
+    
+    const vehicleData = {
+      contractor_id: parseInt(document.getElementById('vContractorId').value) || null,
+      plate: document.getElementById('vPlate').value.trim(),
+      type: document.getElementById('vType').value,
+      capacity_kg: parseInt(document.getElementById('vCap').value),
+      year_of_manufacture: parseInt(document.getElementById('vYear').value) || null,
+      insurance_expiry: document.getElementById('vInsuranceExpiry').value,
+      road_tax_expiry: document.getElementById('vRoadTaxExpiry').value,
+      status: document.getElementById('vStatus').value,
+      traccar_device_id: parseInt(document.getElementById('vTraccarDeviceId').value) || null
+    };
+    
+    showLoading('Saving vehicle...');
+    
+    const url = isEdit ? `/api/vehicles/${vehicleId}` : '/api/vehicles';
+    const method = isEdit ? 'PUT' : 'POST';
+    
+    fetch(url, {
+      method: method,
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(vehicleData)
+    })
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      return res.json();
+    })
+    .then(data => {
+      hideLoading();
+      hideVehicleManage();
+      showNotification(isEdit ? 'Vehicle updated successfully' : 'Vehicle created successfully', 'success');
+      
+      // Refresh vehicles list
+      refreshVehiclesList();
+      
+      // Refresh contractor vehicles if in contractor settings
+      const contractorId = document.getElementById('vContractorId').value;
+      if (contractorId) {
+        loadContractorVehicles(contractorId);
+      }
+      
+      // Log audit entry
+      if (isEdit) {
+        logAuditEntry(contractorId, 'VEHICLE_UPDATED', `Updated vehicle: ${vehicleData.plate}`);
+      } else {
+        logAuditEntry(contractorId, 'VEHICLE_CREATED', `Created vehicle: ${vehicleData.plate}`);
+      }
+    })
+    .catch(error => {
+      hideLoading();
+      console.error('Failed to save vehicle:', error);
+      showNotification('Failed to save vehicle', 'error');
     });
   }
   
+  function deleteVehicle() {
+    const vehicleId = document.getElementById('vId').value;
+    if (!vehicleId) {
+      showNotification('No vehicle selected', 'error');
+      return;
+    }
+    
+    const vehiclePlate = document.getElementById('vPlate').value.trim();
+    
+    if (!confirm(`Are you sure you want to delete vehicle "${vehiclePlate}"? This action cannot be undone.`)) {
+      return;
+    }
+    
+    showLoading('Deleting vehicle...');
+    
+    fetch(`/api/vehicles/${vehicleId}`, {
+      method: 'DELETE',
+      headers: headers
+    })
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      return res.json();
+    })
+    .then(data => {
+      hideLoading();
+      hideVehicleManage();
+      showNotification('Vehicle deleted successfully', 'success');
+      refreshVehiclesList();
+      
+      // Refresh contractor vehicles if in contractor settings
+      const contractorId = document.getElementById('vContractorId').value;
+      if (contractorId) {
+        loadContractorVehicles(contractorId);
+      }
+      
+      // Log audit entry
+      logAuditEntry(contractorId, 'VEHICLE_DELETED', `Deleted vehicle: ${vehiclePlate}`);
+    })
+    .catch(error => {
+      hideLoading();
+      console.error('Failed to delete vehicle:', error);
+      showNotification('Failed to delete vehicle', 'error');
+    });
+  }
+  
+  function loadContractorVehicles(contractorId) {
+    const vehiclesList = document.getElementById('contractorVehiclesList');
+    vehiclesList.innerHTML = '<p>Loading vehicles...</p>';
+    
+    fetch(`/api/contractors/${contractorId}/vehicles`, { headers })
+      .then(res => res.json())
+      .then(vehicles => {
+        if (vehicles.length === 0) {
+          vehiclesList.innerHTML = '<p>No vehicles assigned to this contractor.</p>';
+          return;
+        }
+        
+        vehiclesList.innerHTML = vehicles.map(vehicle => `
+          <div class="vehicle-card">
+            <div class="vehicle-info">
+              <h4>${vehicle.plate}</h4>
+              <p>Type: ${vehicle.type}</p>
+              <p>Capacity: ${vehicle.capacity_kg} kg</p>
+              <p>Status: <span class="badge ${vehicle.status}">${vehicle.status}</span></p>
+              ${vehicle.year_of_manufacture ? `<p>Year: ${vehicle.year_of_manufacture}</p>` : ''}
+            </div>
+            <div class="vehicle-actions">
+              <button class="btn secondary-btn" onclick="showVehicleManage(${vehicle.id}, ${contractorId})">Edit</button>
+              <button class="btn danger-btn" onclick="deleteVehicleFromContractor(${vehicle.id}, ${contractorId})">Remove</button>
+            </div>
+          </div>
+        `).join('');
+      })
+      .catch(error => {
+        console.error('Failed to load contractor vehicles:', error);
+        vehiclesList.innerHTML = '<p>Failed to load vehicles.</p>';
+      });
+  }
+  
+  function deleteVehicleFromContractor(vehicleId, contractorId) {
+    const vehicleCard = event.target.closest('.vehicle-card');
+    const vehiclePlate = vehicleCard.querySelector('h4').textContent;
+    
+    if (!confirm(`Are you sure you want to remove vehicle "${vehiclePlate}" from this contractor?`)) {
+      return;
+    }
+    
+    showLoading('Removing vehicle...');
+    
+    fetch(`/api/vehicles/${vehicleId}`, {
+      method: 'DELETE',
+      headers: headers
+    })
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      return res.json();
+    })
+    .then(data => {
+      hideLoading();
+      showNotification('Vehicle removed successfully', 'success');
+      loadContractorVehicles(contractorId);
+      refreshVehiclesList();
+      
+      // Log audit entry
+      logAuditEntry(contractorId, 'VEHICLE_REMOVED', `Removed vehicle: ${vehiclePlate}`);
+    })
+    .catch(error => {
+      hideLoading();
+      console.error('Failed to remove vehicle:', error);
+      showNotification('Failed to remove vehicle', 'error');
+    });
+  }
+  
+  // Event listeners for vehicle management
+  document.getElementById('addVehicleBtn')?.addEventListener('click', () => showVehicleManage());
+  document.getElementById('addVehicleToContractor')?.addEventListener('click', () => {
+    const contractorId = document.getElementById('contractorId').value;
+    if (contractorId) {
+      showVehicleManage(null, contractorId);
+    } else {
+      showNotification('Please save the contractor first', 'error');
+    }
+  });
+  document.getElementById('vehicleManageClose')?.addEventListener('click', hideVehicleManage);
+  document.getElementById('vehicleManageSave')?.addEventListener('click', saveVehicle);
+  document.getElementById('vehicleManageDelete')?.addEventListener('click', deleteVehicle);
+  
+  // Legacy functions for backward compatibility
   async function loadContractors() {
     try {
       contractorsList = await getJson('/api/contractors');
@@ -1076,12 +1623,6 @@ const charts = {};
         { id: 2, name: 'Contractor B' }
       ];
     }
-  }
-  
-  function hideVehicleManage(){ 
-    vehicleManageModal.classList.remove('show'); 
-    modalBackdrop.classList.remove('show'); 
-    document.body.classList.remove('modal-open'); 
   }
   addVehicleBtn?.addEventListener('click', async () => {
     await showVehicleManage();
@@ -1504,6 +2045,8 @@ const charts = {};
         renderSmartBins(bins);
       } else {
         console.log('[Dashboard] No bins from API, loading demo bins data');
+        // Clear existing bin markers to ensure consistency
+        clearBinMarkers();
         loadDemoSmartBinsData();
       }
       
@@ -1640,7 +2183,13 @@ const charts = {};
     const statusFilter = binStatusFilter && binStatusFilter.value ? binStatusFilter.value : '';
     
     let filteredBins = bins || [];
-    console.log('[Dashboard] Rendering smart bins:', filteredBins.length, 'bins');
+    console.log('[Dashboard] Rendering smart bins:', {
+      totalBins: bins.length,
+      filteredBins: 'will be calculated',
+      areaFilter: areaFilter || 'none',
+      statusFilter: statusFilter || 'none',
+      sourceDataAvailable: !!bins && bins.length > 0
+    });
     
     // Apply filters
     if (areaFilter) {
@@ -1653,13 +2202,28 @@ const charts = {};
       });
     }
     
+    console.log('[Dashboard] Filter results:', {
+      beforeFilter: bins.length,
+      afterFilter: filteredBins.length,
+      activeFilters: { area: areaFilter, status: statusFilter }
+    });
+    
     if (filteredBins.length === 0) {
+      const hasActiveFilters = areaFilter || statusFilter;
+      const emptyMessage = hasActiveFilters 
+        ? 'No smart bins match your current filters'
+        : 'No smart bins available';
+      const emptySubtext = hasActiveFilters
+        ? 'Try adjusting your filter settings'
+        : 'Check connection or try refreshing the dashboard';
+      
       smartBinsContainer.innerHTML = `
         <div class="empty-state-container">
           <div class="empty-state-icon">🗑️</div>
           <div class="empty-state-message">
-            <h3>No smart bins available</h3>
-            <p>Try adjusting your filters or check back later.</p>
+            <h3>${emptyMessage}</h3>
+            <p>${emptySubtext}</p>
+            ${areaFilter || statusFilter ? '<button class="btn cyan-btn" onclick="clearFilters()">Clear Filters</button>' : ''}
           </div>
         </div>
       `;
@@ -1789,6 +2353,30 @@ const charts = {};
       'glass': '🫗'
     };
     return icons[type] || icons['general'];
+  }
+
+  // Clear filters function
+  function clearFilters() {
+    if (binAreaFilter) binAreaFilter.value = '';
+    if (binStatusFilter) binStatusFilter.value = '';
+    
+    // Re-render bins with cleared filters
+    renderSmartBins(smartBinsList);
+    
+    // Update area filter options
+    updateAreaFilter(smartBinsList);
+    
+    showNotification('Filters cleared successfully', 'success', 2000);
+  }
+
+  // Helper function to clear bin markers
+  function clearBinMarkers() {
+    for (const binId in binMarkers) {
+      if (map && binMarkers[binId]) {
+        map.removeLayer(binMarkers[binId]);
+      }
+    }
+    binMarkers = {};
   }
 
   function updateLastRefreshTime() {
@@ -2554,10 +3142,201 @@ const charts = {};
     }, 1000);
   }
 
-  // Initialize dashboard functionality
+  // Audit Trail and Helper Functions
+  function logAuditEntry(contractorId, action, description) {
+    const auditEntry = {
+      contractor_id: contractorId,
+      action: action,
+      description: description,
+      timestamp: new Date().toISOString(),
+      user: document.getElementById('userName')?.textContent || 'System'
+    };
+    
+    // Send to backend
+    fetch('/api/audit-log', {
+      method: 'POST',
+      headers: {
+        ...headers,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(auditEntry)
+    })
+    .then(res => {
+      if (!res.ok) {
+        console.warn('Failed to log audit entry:', res.status);
+      }
+    })
+    .catch(error => {
+      console.warn('Failed to log audit entry:', error);
+    });
+  }
+  
+  function loadAuditTrail(contractorId) {
+    const auditList = document.getElementById('contractorAuditList');
+    auditList.innerHTML = '<p>Loading audit trail...</p>';
+    
+    fetch(`/api/contractors/${contractorId}/audit`, { headers })
+      .then(res => res.json())
+      .then(auditEntries => {
+        if (auditEntries.length === 0) {
+          auditList.innerHTML = '<p>No audit entries found.</p>';
+          return;
+        }
+        
+        auditList.innerHTML = auditEntries.map(entry => `
+          <div class="audit-entry">
+            <div class="audit-info">
+              <h4>${entry.action.replace('_', ' ')}</h4>
+              <p>${entry.description}</p>
+              <p>User: ${entry.user}</p>
+            </div>
+            <div class="audit-timestamp">
+              ${new Date(entry.timestamp).toLocaleString()}
+            </div>
+          </div>
+        `).join('');
+      })
+      .catch(error => {
+        console.error('Failed to load audit trail:', error);
+        auditList.innerHTML = '<p>Failed to load audit trail.</p>';
+      });
+  }
+  
+  // Helper functions for data refresh
+  function refreshContractorsList() {
+    try {
+      fetch('/api/contractors', { headers })
+        .then(res => res.json())
+        .then(contractors => {
+          renderContractors(contractors);
+          makeContractorsClickable();
+        })
+        .catch(error => {
+          console.error('Failed to refresh contractors list:', error);
+        });
+    } catch (error) {
+      console.error('Failed to refresh contractors list:', error);
+    }
+  }
+  
+  function refreshVehiclesList() {
+    try {
+      fetch('/api/vehicles', { headers })
+        .then(res => res.json())
+        .then(vehicles => {
+          renderVehicles(vehicles);
+        })
+        .catch(error => {
+          console.error('Failed to refresh vehicles list:', error);
+        });
+    } catch (error) {
+      console.error('Failed to refresh vehicles list:', error);
+    }
+  }
+  
+  // Enhanced error handling
+  function handleApiError(error, defaultMessage = 'An error occurred') {
+    console.error('API Error:', error);
+    
+    if (error.message.includes('401') || error.message.includes('403')) {
+      showNotification('Authentication error. Please log in again.', 'error');
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 3000);
+    } else if (error.message.includes('404')) {
+      showNotification('Resource not found.', 'error');
+    } else if (error.message.includes('409')) {
+      showNotification('Conflict: This resource may have been modified by another user.', 'error');
+    } else if (error.message.includes('422')) {
+      showNotification('Invalid data provided. Please check your inputs.', 'error');
+    } else if (error.message.includes('500')) {
+      showNotification('Server error. Please try again later.', 'error');
+    } else {
+      showNotification(defaultMessage, 'error');
+    }
+  }
+  
+  // Accessibility enhancements
+  function enhanceAccessibility() {
+    // Add ARIA labels to dynamically created elements
+    document.addEventListener('DOMNodeInserted', (e) => {
+      const element = e.target;
+      
+      // Add ARIA labels to buttons
+      if (element.tagName === 'BUTTON' && !element.getAttribute('aria-label')) {
+        const text = element.textContent.trim();
+        if (text) {
+          element.setAttribute('aria-label', text);
+        }
+      }
+      
+      // Add ARIA labels to inputs
+      if (element.tagName === 'INPUT' && element.id && !element.getAttribute('aria-label')) {
+        const label = document.querySelector(`label[for="${element.id}"]`);
+        if (label) {
+          element.setAttribute('aria-label', label.textContent);
+        }
+      }
+    });
+    
+    // Keyboard navigation for modals
+    document.addEventListener('keydown', (e) => {
+      const modal = document.querySelector('.modal.show');
+      if (!modal) return;
+      
+      // Trap focus within modal
+      if (e.key === 'Tab') {
+        const focusableElements = modal.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+        
+        if (e.shiftKey) {
+          if (document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            firstElement.focus();
+            e.preventDefault();
+          }
+        }
+      }
+    });
+  }
+  
+  // Network status monitoring
+  function monitorNetworkStatus() {
+    function updateOnlineStatus() {
+      if (navigator.onLine) {
+        showNotification('Connection restored', 'success');
+        refreshDashboard();
+      } else {
+        showNotification('Connection lost. Working offline.', 'warn');
+      }
+    }
+    
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+  }
+  
+  // Initialize enhanced features
   document.addEventListener('DOMContentLoaded', () => {
     // Clear any saved layout positions
     localStorage.removeItem('dashboardLayout');
+    
+    // Initialize accessibility features
+    enhanceAccessibility();
+    
+    // Initialize network monitoring
+    monitorNetworkStatus();
+    
+    // Make contractor items clickable
+    setTimeout(() => {
+      makeContractorsClickable();
+    }, 1000);
   });
 
 })();

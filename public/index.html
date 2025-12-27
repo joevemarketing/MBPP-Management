@@ -244,27 +244,148 @@
       </div>
     </div>
     
-    <!-- Modals -->
-  <div class="modal-backdrop" id="modalBackdrop"></div>
-  <div class="modal" id="contractorModal">
+    <!-- Enhanced Contractor Settings Modal -->
+    <div class="modal-backdrop" id="modalBackdrop"></div>
+    <div class="modal contractor-settings-modal" id="contractorSettingsModal">
       <header>
-        <h3>New Contractor</h3>
-        <button id="contractorManageClose" class="btn secondary">Close</button>
+        <h3 id="contractorSettingsTitle">Contractor Settings</h3>
+        <button id="contractorSettingsClose" class="btn secondary">Close</button>
       </header>
       <div class="content">
-        <div class="panel">
-          <h2>Contractor Details</h2>
-          <div class="form">
-            <label>Company Name <input id="cName" /></label>
-            <label>Registration Number <input id="cRegNo" /></label>
+        <div class="contractor-settings-tabs">
+          <button class="tab-btn active" data-tab="details">Details</button>
+          <button class="tab-btn" data-tab="vehicles">Vehicles</button>
+          <button class="tab-btn" data-tab="audit">Audit Trail</button>
+        </div>
+        
+        <!-- Details Tab -->
+        <div class="tab-content active" id="detailsTab">
+          <div class="panel">
+            <h2>Basic Information</h2>
+            <div class="form">
+              <input type="hidden" id="contractorId" />
+              <label>Company Name <input id="cName" required /></label>
+              <label>Registration Number <input id="cRegNo" required /></label>
+              <label>Contact Person <input id="cContactPerson" /></label>
+              <label>Email <input id="cEmail" type="email" /></label>
+              <label>Phone <input id="cPhone" type="tel" /></label>
+              <label>Address <textarea id="cAddress" rows="3"></textarea></label>
+            </div>
+          </div>
+          
+          <div class="panel">
+            <h2>Service Areas & Specialties</h2>
+            <div class="form">
+              <label>Service Areas
+                <select id="cServiceAreas" multiple>
+                  <option value="georgetown">Georgetown</option>
+                  <option value="bayan_lepas">Bayan Lepas</option>
+                  <option value="tanjong_tokong">Tanjong Tokong</option>
+                  <option value="gurney_drive">Gurney Drive</option>
+                  <option value="batu_ferringhi">Batu Ferringhi</option>
+                </select>
+              </label>
+              <label>Specialties
+                <select id="cSpecialties" multiple>
+                  <option value="residential">Residential Collection</option>
+                  <option value="commercial">Commercial Collection</option>
+                  <option value="industrial">Industrial Waste</option>
+                  <option value="recycling">Recycling Services</option>
+                  <option value="hazardous">Hazardous Waste</option>
+                </select>
+              </label>
+            </div>
+          </div>
+          
+          <div class="panel">
+            <h2>Contract Terms</h2>
+            <div class="form">
+              <label>Contract Start Date <input id="cContractStart" type="date" /></label>
+              <label>Contract End Date <input id="cContractEnd" type="date" /></label>
+              <label>Monthly Rate (RM) <input id="cMonthlyRate" type="number" step="0.01" /></label>
+              <label>Service Level Agreement <textarea id="cSLA" rows="3"></textarea></label>
+              <label>Status
+                <select id="cStatus">
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                  <option value="suspended">Suspended</option>
+                </select>
+              </label>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Vehicles Tab -->
+        <div class="tab-content" id="vehiclesTab">
+          <div class="panel">
+            <div class="panel-header">
+              <h2>Vehicle Fleet</h2>
+              <button id="addVehicleToContractor" class="btn cyan-btn">Add Vehicle</button>
+            </div>
+            <div class="vehicles-list" id="contractorVehiclesList">
+              <!-- Vehicles will be rendered here -->
+            </div>
+          </div>
+        </div>
+        
+        <!-- Audit Trail Tab -->
+        <div class="tab-content" id="auditTab">
+          <div class="panel">
+            <h2>Audit Trail</h2>
+            <div class="audit-list" id="contractorAuditList">
+              <!-- Audit entries will be rendered here -->
+            </div>
           </div>
         </div>
       </div>
       <div class="actions">
-        <button id="contractorManageSave" class="btn">Save</button>
+        <button id="contractorSettingsDelete" class="btn danger-btn">Delete Contractor</button>
+        <button id="contractorSettingsSave" class="btn">Save Changes</button>
       </div>
     </div>
-  </div>
+
+    <!-- Vehicle Management Modal -->
+    <div class="modal" id="vehicleManageModal">
+      <header>
+        <h3 id="vehicleManageTitle">New Vehicle</h3>
+        <button id="vehicleManageClose" class="btn secondary">Close</button>
+      </header>
+      <div class="content">
+        <div class="panel">
+          <h2>Vehicle Details</h2>
+          <div class="form">
+            <input type="hidden" id="vId" />
+            <input type="hidden" id="vContractorId" />
+            <label>Vehicle Registration Plate <input id="vPlate" required /></label>
+            <label>Type
+              <select id="vType" required>
+                <option value="Compactor">Compactor</option>
+                <option value="Tipper">Tipper</option>
+                <option value="Skip Loader">Skip Loader</option>
+                <option value="Recycling Truck">Recycling Truck</option>
+                <option value="Hazardous Waste Vehicle">Hazardous Waste Vehicle</option>
+              </select>
+            </label>
+            <label>Capacity (kg) <input id="vCap" type="number" required min="1" /></label>
+            <label>Year of Manufacture <input id="vYear" type="number" min="1900" max="2025" /></label>
+            <label>Insurance Expiry <input id="vInsuranceExpiry" type="date" /></label>
+            <label>Road Tax Expiry <input id="vRoadTaxExpiry" type="date" /></label>
+            <label>Status
+              <select id="vStatus">
+                <option value="active">Active</option>
+                <option value="maintenance">Under Maintenance</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </label>
+            <label>Traccar Device ID <input id="vTraccarDeviceId" type="number" /></label>
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="vehicleManageDelete" class="btn danger-btn" style="display:none;">Delete Vehicle</button>
+        <button id="vehicleManageSave" class="btn">Save</button>
+      </div>
+    </div>
 
   <script src="/config.js"></script>
   <script>

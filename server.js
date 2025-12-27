@@ -334,9 +334,28 @@ app.get('/api/tasks', requireApiKey, async (req, res) => {
 
 // Smart Bins API
 app.get('/api/smart-bins', requireApiKey, async (req, res) => {
-  const sb = ensureServiceClient(res); if (!sb) return;
+  const sb = ensureServiceClient(res);
+  
+  // Fallback for when Supabase is not available
+  if (!sb) {
+    console.log('[Smart Bins API] Using fallback data - Supabase not configured');
+    const fallbackBins = [
+      { bin_id: 'BIN001', name: 'Gurney Plaza Entrance', area: 'Georgetown', current_fill_level: 85, capacity_kg: 100, bin_type: 'General', latitude: 5.4376, longitude: 100.3098 },
+      { bin_id: 'BIN002', name: 'Queensbay Mall South', area: 'Bayan Lepas', current_fill_level: 45, capacity_kg: 100, bin_type: 'Recycle', latitude: 5.3325, longitude: 100.3067 },
+      { bin_id: 'BIN003', name: 'Penang Times Square', area: 'Georgetown', current_fill_level: 95, capacity_kg: 120, bin_type: 'General', latitude: 5.4123, longitude: 100.3254 },
+      { bin_id: 'BIN004', name: 'KOMTAR Bus Terminal', area: 'Georgetown', current_fill_level: 72, capacity_kg: 150, bin_type: 'General', latitude: 5.4140, longitude: 100.3290 },
+      { bin_id: 'BIN005', name: 'Batu Ferringhi Beach', area: 'Batu Ferringhi', current_fill_level: 38, capacity_kg: 80, bin_type: 'Recycle', latitude: 5.4710, longitude: 100.2770 }
+    ];
+    return res.json(fallbackBins);
+  }
+  
+  // Normal Supabase flow
   const { data, error } = await sb.from('smart_bins').select('*').order('bin_id');
-  if (error) return res.status(500).json({ error: 'Failed to fetch smart bins' });
+  if (error) {
+    console.error('[Smart Bins API] Supabase error:', error);
+    return res.status(500).json({ error: 'Failed to fetch smart bins' });
+  }
+  console.log('[Smart Bins API] Successfully fetched', data.length, 'bins from Supabase');
   res.json(data);
 });
 
