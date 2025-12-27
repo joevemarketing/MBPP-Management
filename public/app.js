@@ -621,9 +621,24 @@ const charts = {};
       hideContractorManage();
       
       // Refresh data
-      const contractors = await getJson('/api/contractors');
-      const metrics = await getJson('/api/metrics');
-      renderContractors(metrics.byContractor ?? contractors);
+      try {
+        const contractors = await getJson('/api/contractors');
+        const metrics = await getJson('/api/metrics');
+        renderContractors(metrics.byContractor ?? contractors);
+      } catch (refreshError) {
+        console.error('Failed to refresh contractors list:', refreshError);
+        // Add the newly saved contractor to the local list manually
+        if (contractorsList && cName && cRegNo && cVehicles) {
+          const newContractor = {
+            id: Date.now(), // Temporary ID
+            name: cName.value,
+            registration_no: cRegNo.value,
+            vehicles: Number(cVehicles.value)
+          };
+          contractorsList.push(newContractor);
+          renderContractors(contractorsList);
+        }
+      }
       updateCharts(metrics);
       setUpdated();
       
@@ -741,8 +756,24 @@ const charts = {};
       hideVehicleManage();
       
       // Refresh data
-      const vehicles = await getJson('/api/vehicles');
-      renderVehicles(vehicles);
+      try {
+        const vehicles = await getJson('/api/vehicles');
+        renderVehicles(vehicles);
+      } catch (refreshError) {
+        console.error('Failed to refresh vehicles list:', refreshError);
+        // Add the newly saved vehicle to the local list manually
+        if (vehiclesList && vPlate && vType && vCap && vContractor) {
+          const newVehicle = {
+            id: Date.now(), // Temporary ID
+            plate: vPlate.value,
+            type: vType.value,
+            capacity_kg: Number(vCap.value),
+            contractor_id: Number(vContractor.value)
+          };
+          vehiclesList.push(newVehicle);
+          renderVehicles(vehiclesList);
+        }
+      }
       
       const metrics = await getJson('/api/metrics');
       renderTotals(metrics);
@@ -864,8 +895,26 @@ const charts = {};
       hideTaskManage();
       
       // Refresh data
-      const tasks = await getJson('/api/tasks');
-      renderTasks(tasks);
+      try {
+        const tasks = await getJson('/api/tasks');
+        renderTasks(tasks);
+      } catch (refreshError) {
+        console.error('Failed to refresh tasks list:', refreshError);
+        // Add the newly created task to the local list manually
+        if (tasksList && tTitle && tVehicle && tContractor) {
+          const newTask = {
+            id: Date.now(), // Temporary ID
+            title: tTitle.value,
+            vehicle_id: Number(tVehicle.value),
+            contractor_id: Number(tContractor.value),
+            priority: tPriority.value,
+            status: 'pending',
+            scheduled_time: tScheduled.value
+          };
+          tasksList.push(newTask);
+          renderTasks(tasksList);
+        }
+      }
       
       setUpdated();
       
