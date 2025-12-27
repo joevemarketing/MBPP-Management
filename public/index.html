@@ -36,17 +36,14 @@
         <div id="updatedAt" style="display:none;"></div>
         <div id="selectedBinCount" style="display:none;">0</div>
         <button id="themeToggle" class="toggle" aria-label="Toggle theme">Theme</button>
-        <button id="downloadPdf" class="btn secondary">Download PDF</button>
+        <button id="settingsBtn" class="btn secondary" aria-label="Settings">⚙️ Settings</button>
         <button id="logoutBtn" class="btn secondary">Logout</button>
-        <label class="toggle" style="gap:4px"><input type="checkbox" id="showTrails"/> Trails</label>
-        <label class="toggle" style="gap:4px"><input type="checkbox" id="followDevice"/> Follow</label>
-        <select id="deviceSelect" class="toggle" aria-label="Device"></select>
-        <select id="apiEnv" class="toggle" aria-label="API environment">
-          <option value="/">Local</option>
-          <option value="https://trae05is1njt-five.vercel.app">Production</option>
-        </select>
-        <input id="apiKeyInput" placeholder="API key" class="toggle" style="width:140px" />
-        <button id="saveApi" class="btn">Save</button>
+        <input type="hidden" id="showTrails"/>
+        <input type="hidden" id="followDevice"/>
+        <input type="hidden" id="deviceSelect"/>
+        <input type="hidden" id="apiEnv"/>
+        <input type="hidden" id="apiKeyInput"/>
+        <input type="hidden" id="saveApi"/>
       </div>
     </div>
     
@@ -95,11 +92,17 @@
     </div>
   </header>
   <main>
-    <!-- Left Column: Smart Bins -->
+    <!-- Left Column: KPI + Smart Bins -->
     <section class="top-left">
       <div class="panel">
-        <h2>Alerts</h2>
-        <div id="alerts" class="alerts-list"></div>
+        <h2>Key Performance Indicators</h2>
+        <div class="kpi-cards">
+          <div class="kpi-card"><div class="metric" id="kpiTotalBins">—</div><div class="label">Total bins</div></div>
+          <div class="kpi-card"><div class="metric critical" id="kpiCriticalBins">—</div><div class="label">Critical bins</div></div>
+          <div class="kpi-card"><div class="metric" id="kpiVehiclesService">—</div><div class="label">Vehicles in service</div></div>
+          <div class="kpi-card"><div class="metric" id="kpiPendingTasks">—</div><div class="label">Pending tasks</div></div>
+          <div class="kpi-card"><div class="metric" id="kpiUnreadAlerts">—</div><div class="label">Unread alerts</div></div>
+        </div>
       </div>
       <div class="panel">
         <h2>Smart Bins</h2>
@@ -117,6 +120,10 @@
         </div>
         <div class="bins-grid" id="smartBins"></div>
       </div>
+      <div class="panel">
+        <h2>Alerts</h2>
+        <div id="alerts" class="alerts-list"></div>
+      </div>
     </section>
 
     <!-- Center Column: Map View + Analytics -->
@@ -125,16 +132,7 @@
         <h2>Map View</h2>
         <div id="map"></div>
       </div>
-      <div class="panel">
-        <h2>Overview</h2>
-        <div class="kpi-cards">
-          <div class="kpi-card"><div class="metric" id="kpiTotalBins">—</div><div class="label">Total bins</div></div>
-          <div class="kpi-card"><div class="metric critical" id="kpiCriticalBins">—</div><div class="label">Critical bins</div></div>
-          <div class="kpi-card"><div class="metric" id="kpiVehiclesService">—</div><div class="label">Vehicles in service</div></div>
-          <div class="kpi-card"><div class="metric" id="kpiPendingTasks">—</div><div class="label">Pending tasks</div></div>
-          <div class="kpi-card"><div class="metric" id="kpiUnreadAlerts">—</div><div class="label">Unread alerts</div></div>
-        </div>
-      </div>
+
       <div class="panel">
         <h2>Advanced Analytics</h2>
         <div class="analytics">
