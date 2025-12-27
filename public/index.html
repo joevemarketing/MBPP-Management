@@ -19,7 +19,7 @@
         <div style="font-size: 18px; font-weight: 600; color: var(--text-primary);">MBPP Smart Waste Management</div>
       </div>
       
-      <!-- Unified Desktop Header -->
+      <!-- Professional Navigation Header -->
       <div class="header-right desktop-header">
         <div id="userInfo">
           <span id="userName">Loading...</span>
@@ -29,61 +29,101 @@
         <div id="updatedAt" style="display:none;"></div>
         <div id="selectedBinCount" style="display:none;">0</div>
         
-        <!-- Unified Navigation Menu -->
-        <div class="unified-nav">
-          <!-- Primary Actions -->
-          <div class="nav-group primary-actions">
-            <button id="themeToggle" class="nav-btn" aria-label="Toggle theme">
-              <span class="nav-icon">🌙</span>
-              <span class="nav-text">Theme</span>
-            </button>
-            <button id="downloadPdf" class="nav-btn" aria-label="Download PDF">
-              <span class="nav-icon">📄</span>
-              <span class="nav-text">Export</span>
-            </button>
-          </div>
-          
-          <!-- Map Controls -->
-          <div class="nav-group map-controls">
-            <label class="nav-toggle">
-              <input type="checkbox" id="showTrails"/>
-              <span class="nav-icon">🛤️</span>
-              <span class="nav-text">Trails</span>
-            </label>
-            <label class="nav-toggle">
-              <input type="checkbox" id="followDevice"/>
-              <span class="nav-icon">🎯</span>
-              <span class="nav-text">Follow</span>
-            </label>
-            <select id="deviceSelect" class="nav-select" aria-label="Device">
-              <option value="">All Devices</option>
-            </select>
-          </div>
-          
-          <!-- Settings & Actions -->
-          <div class="nav-group settings-actions">
-            <div class="nav-dropdown">
-              <button id="navSettingsBtn" class="nav-btn dropdown-toggle" aria-label="Settings and more">
+        <!-- Professional Navigation Menu -->
+        <nav class="main-navigation" role="navigation" aria-label="Main navigation">
+          <ul class="nav-menu">
+            <li class="nav-item">
+              <a href="#dashboard" class="nav-link" aria-label="Dashboard">
+                <span class="nav-icon">📊</span>
+                <span class="nav-text">Dashboard</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#bins" class="nav-link" aria-label="Smart Bins">
+                <span class="nav-icon">🗑️</span>
+                <span class="nav-text">Smart Bins</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#vehicles" class="nav-link" aria-label="Vehicles">
+                <span class="nav-icon">🚛</span>
+                <span class="nav-text">Vehicles</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#contractors" class="nav-link" aria-label="Contractors">
+                <span class="nav-icon">👥</span>
+                <span class="nav-text">Contractors</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#analytics" class="nav-link" aria-label="Analytics">
+                <span class="nav-icon">📈</span>
+                <span class="nav-text">Analytics</span>
+              </a>
+            </li>
+            <li class="nav-item has-dropdown">
+              <button class="nav-link dropdown-trigger" aria-label="Tools and Settings" aria-expanded="false">
                 <span class="nav-icon">⚙️</span>
-                <span class="nav-text">Settings</span>
+                <span class="nav-text">Tools</span>
                 <span class="dropdown-arrow">▼</span>
               </button>
-              <div class="dropdown-menu" id="settingsDropdown">
-                <div class="dropdown-section">
-                  <h4>API Configuration</h4>
-                  <select id="apiEnv" class="dropdown-select">
-                    <option value="/">Local</option>
-                    <option value="https://trae05is1njt-five.vercel.app">Production</option>
+              <ul class="dropdown-menu tools-dropdown">
+                <li class="dropdown-item">
+                  <label class="dropdown-toggle">
+                    <input type="checkbox" id="showTrails"/>
+                    <span class="dropdown-icon">🛤️</span>
+                    <span class="dropdown-text">Show Trails</span>
+                  </label>
+                </li>
+                <li class="dropdown-item">
+                  <label class="dropdown-toggle">
+                    <input type="checkbox" id="followDevice"/>
+                    <span class="dropdown-icon">🎯</span>
+                    <span class="dropdown-text">Follow Device</span>
+                  </label>
+                </li>
+                <li class="dropdown-item">
+                  <select id="deviceSelect" class="dropdown-select" aria-label="Device Selection">
+                    <option value="">All Devices</option>
                   </select>
-                  <input id="apiKeyInput" placeholder="API Key" class="dropdown-input" />
-                  <button id="saveApi" class="dropdown-btn">💾 Save API</button>
-                </div>
-                <div class="dropdown-divider"></div>
-                <button id="logoutBtn" class="dropdown-btn danger">🚪 Logout</button>
-              </div>
-            </div>
-          </div>
-        </div>
+                </li>
+                <li class="dropdown-divider"></li>
+                <li class="dropdown-item">
+                  <a href="#" id="themeToggle" class="dropdown-link">
+                    <span class="dropdown-icon">🌙</span>
+                    <span class="dropdown-text">Toggle Theme</span>
+                  </a>
+                </li>
+                <li class="dropdown-item">
+                  <a href="#" id="downloadPdf" class="dropdown-link">
+                    <span class="dropdown-icon">📄</span>
+                    <span class="dropdown-text">Download PDF</span>
+                  </a>
+                </li>
+                <li class="dropdown-divider"></li>
+                <li class="dropdown-item">
+                  <div class="api-config">
+                    <h5>API Configuration</h5>
+                    <select id="apiEnv" class="dropdown-select">
+                      <option value="/">Local</option>
+                      <option value="https://trae05is1njt-five.vercel.app">Production</option>
+                    </select>
+                    <input id="apiKeyInput" placeholder="API Key" class="dropdown-input" />
+                    <button id="saveApi" class="dropdown-btn">💾 Save</button>
+                  </div>
+                </li>
+                <li class="dropdown-divider"></li>
+                <li class="dropdown-item">
+                  <a href="#" id="logoutBtn" class="dropdown-link logout">
+                    <span class="dropdown-icon">🚪</span>
+                    <span class="dropdown-text">Logout</span>
+                  </a>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </nav>
         
         <!-- Mobile Menu Button -->
         <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle mobile menu">
