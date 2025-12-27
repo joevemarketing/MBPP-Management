@@ -14,40 +14,151 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♻</text></svg>'>
 </head>
 <body>
-  <header class="header">
-    <div class="header-top">
-      <div class="logo">
-        <img src="logo.jpeg" alt="MBPP Logo" />
-        <span class="title">MBPP Smart Waste Management</span>
+  <header class="modern-header" role="banner" aria-label="Main navigation">
+    <div class="header-main">
+      <!-- Logo -->
+      <div class="header-brand">
+        <a href="/" class="brand">
+          <img src="logo.jpeg" alt="MBPP" class="brand-logo" />
+          <span class="brand-name">MBPP Management</span>
+        </a>
       </div>
-      <div class="admin-info">
-        <span class="label" id="userName">Administrator</span>
-        <span class="badge" id="userRole">ADMIN</span>
+
+      <!-- Navigation -->
+      <nav class="header-nav" role="navigation" aria-label="Primary navigation">
+        <a href="/dashboard" class="nav-item active">Dashboard</a>
+        <a href="/analytics" class="nav-item">Analytics</a>
+        <a href="/settings" class="nav-item">Settings</a>
+      </nav>
+
+      <!-- Right Section -->
+      <div class="header-right">
+        <!-- Search -->
+        <div class="search-wrapper">
+          <input 
+            type="search" 
+            id="global-search"
+            placeholder="Quick search..." 
+            class="search-field"
+            aria-label="Search"
+          />
+          <div class="search-icon">🔍</div>
+        </div>
+
+        <!-- Actions -->
+        <div class="header-actions">
+          <button id="themeToggle" class="action-btn" aria-label="Toggle theme">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="5"/>
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </svg>
+          </button>
+          
+          <button id="downloadPdf" class="action-btn" aria-label="Download report">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7,10 12,15 17,10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- User Menu -->
+        <div class="user-section">
+          <div class="user-details">
+            <span class="user-name" id="userName">Admin</span>
+            <span class="user-role" id="userRole">Administrator</span>
+          </div>
+          <button class="user-avatar-btn" aria-label="User menu" aria-expanded="false">
+            <div class="user-avatar">A</div>
+          </button>
+        </div>
       </div>
     </div>
 
-    <div class="header-status-bar">
-      <div class="status-message" id="status">
-        <span class="icon">⚠️</span>
-        <span id="statusText">Realtime stream error; switching to polling</span>
+    <!-- Status Bar -->
+    <div class="status-bar" role="status" aria-live="polite">
+      <div class="status-content" id="status">
+        <span class="status-indicator"></span>
+        <span class="status-text" id="statusText">System operational</span>
       </div>
     </div>
 
-    <div class="header-controls">
-      <div class="control-group">
-        <button id="themeToggle" class="control-btn">Theme</button>
-        <button id="downloadPdf" class="control-btn">Download PDF</button>
-        <button id="logoutBtn" class="control-btn">Logout</button>
+    <!-- Quick Controls -->
+    <div class="quick-controls">
+      <div class="control-section">
+        <label class="switch">
+          <input type="checkbox" id="showTrails" />
+          <span class="switch-slider"></span>
+          <span class="switch-label">Show Trails</span>
+        </label>
+        
+        <label class="switch">
+          <input type="checkbox" id="followDevice" />
+          <span class="switch-slider"></span>
+          <span class="switch-label">Follow Device</span>
+        </label>
       </div>
-      <div class="control-group">
-        <label class="toggle-control"><input type="checkbox" id="showTrails" /> Trails</label>
-        <label class="toggle-control"><input type="checkbox" id="followDevice" /> Follow</label>
+
+      <div class="control-section">
+        <select id="deviceSelect" class="modern-select">
+          <option value="">All Devices</option>
+        </select>
+        
+        <select id="apiEnv" class="modern-select">
+          <option value="/">Local</option>
+        </select>
+        
+        <div class="input-group">
+          <input 
+            type="text" 
+            id="apiKeyInput" 
+            placeholder="API Key" 
+            class="modern-input"
+          />
+          <button id="saveApi" class="save-button">Save</button>
+        </div>
       </div>
-      <div class="control-group">
-        <select id="deviceSelect" class="control-select"><option value="">Device 1</option></select>
-        <select id="apiEnv" class="control-select"><option value="/">Local</option></select>
-        <input id="apiKeyInput" type="text" placeholder="dev-key-12345" class="control-input" />
-        <button id="saveApi" class="save-btn">Save</button>
+
+      <button id="logoutBtn" class="logout-button">Logout</button>
+    </div>
+
+    <!-- Mobile Menu -->
+    <button class="mobile-toggle" id="mobileMenuBtn" aria-label="Menu">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+    <div class="mobile-menu" id="mobile-menu">
+      <div class="mobile-header">
+        <div class="mobile-user">
+          <div class="user-avatar">A</div>
+          <div class="mobile-user-info">
+            <span class="user-name">Admin</span>
+            <span class="user-role">Administrator</span>
+          </div>
+        </div>
+        <button class="mobile-close" id="mobileMenuClose">×</button>
+      </div>
+      
+      <nav class="mobile-nav">
+        <a href="/dashboard" class="mobile-nav-item">Dashboard</a>
+        <a href="/analytics" class="mobile-nav-item">Analytics</a>
+        <a href="/settings" class="mobile-nav-item">Settings</a>
+      </nav>
+      
+      <div class="mobile-actions">
+        <button class="mobile-action-btn">Theme</button>
+        <button class="mobile-action-btn">Download PDF</button>
+        <button class="mobile-action-btn logout">Logout</button>
       </div>
     </div>
   </header>

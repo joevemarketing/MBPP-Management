@@ -3424,6 +3424,215 @@ function renderVehicles(list){
     window.addEventListener('offline', updateOnlineStatus);
   }
   
+  // Enhanced header functionality
+  function initializeHeaderEnhancements() {
+    // Global search functionality
+    const globalSearch = document.getElementById('global-search');
+    if (globalSearch) {
+      let searchTimeout;
+      globalSearch.addEventListener('input', (e) => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+          performGlobalSearch(e.target.value);
+        }, 300);
+      });
+
+      globalSearch.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          performGlobalSearch(e.target.value);
+        }
+        if (e.key === 'Escape') {
+          e.target.value = '';
+          clearSearchResults();
+        }
+      });
+    }
+
+    // User menu dropdown
+    const userMenuButton = document.querySelector('.user-menu-button');
+    if (userMenuButton) {
+      userMenuButton.addEventListener('click', () => {
+        const isExpanded = userMenuButton.getAttribute('aria-expanded') === 'true';
+        userMenuButton.setAttribute('aria-expanded', !isExpanded);
+        
+        // Create dropdown if it doesn't exist
+        if (!isExpanded) {
+          createUserDropdown();
+        } else {
+          removeUserDropdown();
+        }
+      });
+    }
+
+    // Keyboard navigation enhancement
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') {
+        document.body.classList.add('keyboard-navigation');
+      }
+    });
+
+    document.addEventListener('mousedown', () => {
+      document.body.classList.remove('keyboard-navigation');
+    });
+  }
+
+  function performGlobalSearch(query) {
+    if (!query.trim()) {
+      clearSearchResults();
+      return;
+    }
+
+    const searchTerm = query.toLowerCase();
+    const results = [];
+
+    // Search in smart bins
+    smartBinsList.forEach(bin => {
+      if (bin.bin_id.toLowerCase().includes(searchTerm) || 
+          bin.location.toLowerCase().includes(searchTerm)) {
+        results.push({ type: 'bin', data: bin });
+      }
+    });
+
+    // Search in contractors
+    contractorsList.forEach(contractor => {
+      if (contractor.name.toLowerCase().includes(searchTerm) ||
+          contractor.contact.toLowerCase().includes(searchTerm)) {
+        results.push({ type: 'contractor', data: contractor });
+      }
+    });
+
+    displaySearchResults(results);
+  }
+
+  function displaySearchResults(results) {
+    // Remove existing results
+    clearSearchResults();
+
+    if (results.length === 0) {
+      return;
+    }
+
+    const resultsContainer = document.createElement('div');
+    resultsContainer.className = 'search-results';
+    resultsContainer.setAttribute('role', 'listbox');
+    
+    results.forEach((result, index) => {
+      const resultItem = document.createElement('div');
+      resultItem.className = 'search-result-item';
+      resultItem.setAttribute('role', 'option');
+      resultItem.setAttribute('data-type', result.type);
+      resultItem.setAttribute('data-id', result.data.id || result.data.bin_id || result.data.contractor_id);
+      
+      const icon = result.type === 'bin' ? '🗑️' : '👤';
+      const name = result.type === 'bin' ? result.data.bin_id : result.data.name;
+      const location = result.type === 'bin' ? result.data.location : result.data.service_area;
+      
+      resultItem.innerHTML = `
+        <span class="search-result-icon">${icon}</span>
+        <div class="search-result-content">
+          <div class="search-result-title">${name}</div>
+          <div class="search-result-subtitle">${location}</div>
+        </div>
+      `;
+      
+      resultItem.addEventListener('click', () => {
+        selectSearchResult(result);
+        clearSearchResults();
+      });
+      
+      resultItem.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          selectSearchResult(result);
+          clearSearchResults();
+        }
+      });
+      
+      resultsContainer.appendChild(resultItem);
+    });
+
+    const searchContainer = document.querySelector('.header-search');
+    if (searchContainer) {
+      searchContainer.appendChild(resultsContainer);
+    }
+  }
+
+  function clearSearchResults() {
+    const existingResults = document.querySelector('.search-results');
+    if (existingResults) {
+      existingResults.remove();
+    }
+  }
+
+  function selectSearchResult(result) {
+    if (result.type === 'bin') {
+      // Highlight the bin in the list
+      const binElement = document.querySelector(`[data-bin-id="${result.data.bin_id}"]`);
+      if (binElement) {
+        binElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        binElement.classList.add('search-highlight');
+        setTimeout(() => binElement.classList.remove('search-highlight'), 2000);
+      }
+    } else if (result.type === 'contractor') {
+      // Highlight the contractor in the list
+      const contractorElement = document.querySelector(`[data-contractor-id="${result.data.contractor_id}"]`);
+      if (contractorElement) {
+        contractorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        contractorElement.classList.add('search-highlight');
+        setTimeout(() => contractorElement.classList.remove('search-highlight'), 2000);
+      }
+    }
+  }
+
+  function createUserDropdown() {
+    const existingDropdown = document.querySelector('.user-dropdown');
+    if (existingDropdown) return;
+
+    const dropdown = document.createElement('div');
+    dropdown.className = 'user-dropdown';
+    dropdown.setAttribute('role', 'menu');
+    
+    dropdown.innerHTML = `
+      <div role="menuitem">
+        <a href="/profile" class="dropdown-item">Profile</a>
+      </div>
+      <div role="menuitem">
+        <a href="/settings" class="dropdown-item">Settings</a>
+      </div>
+      <div role="separator" class="dropdown-separator"></div>
+      <div role="menuitem">
+        <button class="dropdown-item" onclick="document.getElementById('logoutBtn').click()">
+          Logout
+        </button>
+      </div>
+    `;
+
+    const userMenuButton = document.querySelector('.user-menu-button');
+    userMenuButton.appendChild(dropdown);
+
+    // Close dropdown when clicking outside
+    setTimeout(() => {
+      document.addEventListener('click', closeUserDropdownHandler);
+    }, 100);
+  }
+
+  function removeUserDropdown() {
+    const dropdown = document.querySelector('.user-dropdown');
+    if (dropdown) {
+      dropdown.remove();
+    }
+    document.removeEventListener('click', closeUserDropdownHandler);
+  }
+
+  function closeUserDropdownHandler(e) {
+    const userMenuButton = document.querySelector('.user-menu-button');
+    if (!userMenuButton.contains(e.target)) {
+      userMenuButton.setAttribute('aria-expanded', 'false');
+      removeUserDropdown();
+    }
+  }
+
   // Initialize enhanced features
   document.addEventListener('DOMContentLoaded', () => {
     // Clear any saved layout positions
@@ -3434,6 +3643,9 @@ function renderVehicles(list){
     
     // Initialize network monitoring
     monitorNetworkStatus();
+    
+    // Initialize header enhancements
+    initializeHeaderEnhancements();
     
     // Make contractor items clickable
     setTimeout(() => {
