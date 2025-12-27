@@ -249,6 +249,8 @@ main {
   overflow-y: auto;
   min-height: 0;
   isolation: isolate;
+  position: relative;
+  z-index: 3;
 }
 
 .middle-right { 
@@ -256,6 +258,8 @@ main {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  position: relative;
+  z-index: 4;
 }
 
 .full-width { 
@@ -264,6 +268,8 @@ main {
   flex-direction: column;
   gap: 16px;
   isolation: isolate;
+  position: relative;
+  z-index: 5;
 }
 
 /* Remove generic section styles to let grid work properly */
@@ -364,8 +370,9 @@ main {
   gap: 16px;
   height: auto;
   padding: 16px;
-  overflow: visible;
+  overflow: hidden;
   max-height: 400px;
+  position: relative;
 }
 
 .panel .list {
@@ -661,6 +668,9 @@ main {
   max-height: 180px;
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
   backdrop-filter: blur(20px);
   box-shadow: 0 8px 24px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.05);
 }
@@ -686,6 +696,33 @@ main {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  line-clamp: 1;
+  max-width: 100%;
+}
+
+/* Add scroll indicator for chart cards */
+.chart-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+  background: linear-gradient(transparent, rgba(15, 23, 42, 0.1));
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.light .chart-card::after {
+  background: linear-gradient(transparent, rgba(255, 255, 255, 0.1));
+}
+
+.chart-card:hover::after {
+  opacity: 1;
 }
 
 /* Update Indicator */
@@ -1002,18 +1039,53 @@ input:hover, select:hover {
   
   /* Specific fix for smart bins and map container */
   .top-left {
-    z-index: 2;
-    margin-bottom: 20px;
+    z-index: 10;
+    margin-bottom: 24px;
+    position: relative;
   }
   
   .top-right {
-    z-index: 1;
-    margin-bottom: 20px;
+    z-index: 5;
+    margin-bottom: 24px;
+    position: relative;
   }
   
   /* Add proper spacing between grid items */
   .main-grid {
-    gap: 20px;
+    gap: 24px;
+  }
+  
+  /* Enhanced z-index management for all grid areas */
+  .top-left .panel {
+    z-index: 10;
+    position: relative;
+  }
+  
+  .top-right .panel:first-child {
+    z-index: 8;
+    position: relative;
+  }
+  
+  .top-right .panel:nth-child(2) {
+    z-index: 6;
+    position: relative;
+  }
+  
+  /* Ensure map container doesn't overlap */
+  .top-right .panel:first-child {
+    margin-bottom: 20px;
+  }
+  
+  .panel .bins-grid {
+    position: relative;
+    z-index: 15;
+  }
+  
+  #map {
+    position: relative;
+    z-index: 1;
+    border-radius: 24px;
+    overflow: hidden;
   }
   
   /* Ensure vehicles and contractors sections are visible */
@@ -1038,12 +1110,27 @@ input:hover, select:hover {
   
   /* Specific fixes for vehicles and contractors panels */
   .bottom-left .panel,
-  .bottom-center .panel {
+  .bottom-center .panel,
+  .middle-right .panel,
+  .full-width .panel {
     display: block !important;
     visibility: visible !important;
     opacity: 1 !important;
     transform: none !important;
     position: relative !important;
+    z-index: inherit !important;
+    margin-bottom: 16px !important;
+  }
+  
+  /* Ensure bottom sections are always visible */
+  .bottom-left,
+  .bottom-center,
+  .middle-right,
+  .full-width {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    flex-direction: column !important;
   }
   
   /* Ensure vehicle and contractor items display properly */
@@ -1527,6 +1614,54 @@ input:hover, select:hover {
   .btn {
     min-height: 44px;
     padding: 10px 16px;
+  }
+}
+
+/* Cross-browser compatibility fixes */
+@supports not (-webkit-touch-callout: none) {
+  .panel {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+}
+
+/* Safari specific fixes */
+@supports (-webkit-appearance: none) {
+  .chart-card canvas {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+  }
+  
+  .bins-grid {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Firefox specific fixes */
+@supports (-moz-appearance: none) {
+  .panel {
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent) transparent;
+  }
+}
+
+/* Edge specific fixes */
+@supports (-ms-ime-align: auto) {
+  .analytics {
+    -ms-overflow-style: scrollbar;
+  }
+}
+
+/* High DPI displays optimization */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .panel {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  .chart-card canvas {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
   }
 }
 
