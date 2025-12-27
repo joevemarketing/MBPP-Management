@@ -13,270 +13,175 @@
 </head>
 <body>
   <header class="header">
-    <div class="header-content">
-      <div class="logo" style="display: flex; align-items: center; gap: 12px;">
-        <img src="logo.jpeg" alt="MBPP Smart Management" style="height: 60px; border-radius: var(--radius-sm);" />
-        <div style="font-size: 18px; font-weight: 600; color: var(--text-primary);">MBPP Smart Waste Management</div>
+    <div class="header-top">
+      <div class="logo">
+        <img src="logo.jpeg" alt="MBPP Logo" />
+        <span class="title">MBPP Smart Waste Management</span>
       </div>
-      
-      <!-- Professional Navigation Header -->
-      <div class="header-right desktop-header">
-        <div id="userInfo">
-          <span id="userName">Loading...</span>
-          <span id="userRole" class="badge"></span>
-        </div>
-        <div id="status">Loading…</div>
-        <div id="updatedAt" style="display:none;"></div>
-        <div id="selectedBinCount" style="display:none;">0</div>
-        
-        <!-- Professional Navigation Menu -->
-        <nav class="main-navigation" role="navigation" aria-label="Main navigation">
-          <ul class="nav-menu">
-            <li class="nav-item">
-              <a href="#dashboard" class="nav-link" aria-label="Dashboard">
-                <span class="nav-icon">📊</span>
-                <span class="nav-text">Dashboard</span>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="#bins" class="nav-link" aria-label="Smart Bins">
-                <span class="nav-icon">🗑️</span>
-                <span class="nav-text">Smart Bins</span>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="#vehicles" class="nav-link" aria-label="Vehicles">
-                <span class="nav-icon">🚛</span>
-                <span class="nav-text">Vehicles</span>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="#contractors" class="nav-link" aria-label="Contractors">
-                <span class="nav-icon">👥</span>
-                <span class="nav-text">Contractors</span>
-              </a>
-            </li>
-            <li class="nav-item">
-              <a href="#analytics" class="nav-link" aria-label="Analytics">
-                <span class="nav-icon">📈</span>
-                <span class="nav-text">Analytics</span>
-              </a>
-            </li>
-            <li class="nav-item has-dropdown">
-              <button class="nav-link dropdown-trigger" aria-label="Tools and Settings" aria-expanded="false">
-                <span class="nav-icon">⚙️</span>
-                <span class="nav-text">Tools</span>
-                <span class="dropdown-arrow">▼</span>
-              </button>
-              <ul class="dropdown-menu tools-dropdown">
-                <li class="dropdown-item">
-                  <label class="dropdown-toggle">
-                    <input type="checkbox" id="showTrails"/>
-                    <span class="dropdown-icon">🛤️</span>
-                    <span class="dropdown-text">Show Trails</span>
-                  </label>
-                </li>
-                <li class="dropdown-item">
-                  <label class="dropdown-toggle">
-                    <input type="checkbox" id="followDevice"/>
-                    <span class="dropdown-icon">🎯</span>
-                    <span class="dropdown-text">Follow Device</span>
-                  </label>
-                </li>
-                <li class="dropdown-item">
-                  <select id="deviceSelect" class="dropdown-select" aria-label="Device Selection">
-                    <option value="">All Devices</option>
-                  </select>
-                </li>
-                <li class="dropdown-divider"></li>
-                <li class="dropdown-item">
-                  <a href="#" id="themeToggle" class="dropdown-link">
-                    <span class="dropdown-icon">🌙</span>
-                    <span class="dropdown-text">Toggle Theme</span>
-                  </a>
-                </li>
-                <li class="dropdown-item">
-                  <a href="#" id="downloadPdf" class="dropdown-link">
-                    <span class="dropdown-icon">📄</span>
-                    <span class="dropdown-text">Download PDF</span>
-                  </a>
-                </li>
-                <li class="dropdown-divider"></li>
-                <li class="dropdown-item">
-                  <div class="api-config">
-                    <h5>API Configuration</h5>
-                    <select id="apiEnv" class="dropdown-select">
-                      <option value="/">Local</option>
-                      <option value="https://trae05is1njt-five.vercel.app">Production</option>
-                    </select>
-                    <input id="apiKeyInput" placeholder="API Key" class="dropdown-input" />
-                    <button id="saveApi" class="dropdown-btn">💾 Save</button>
-                  </div>
-                </li>
-                <li class="dropdown-divider"></li>
-                <li class="dropdown-item">
-                  <a href="#" id="logoutBtn" class="dropdown-link logout">
-                    <span class="dropdown-icon">🚪</span>
-                    <span class="dropdown-text">Logout</span>
-                  </a>
-                </li>
-              </ul>
-            </li>
-          </ul>
-        </nav>
-        
-        <!-- Mobile Menu Button -->
-        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle mobile menu">
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
+      <div class="admin-info">
+        <span class="label" id="userName">Administrator</span>
+        <span class="role badge" id="userRole">ADMIN</span>
       </div>
     </div>
-    
-    <!-- Mobile Menu -->
-    <div class="mobile-menu" id="mobileMenu">
-      <div class="mobile-menu-header">
-        <div id="mobileUserInfo">
-          <span id="mobileUserName">Loading...</span>
-          <span id="mobileUserRole" class="badge"></span>
-        </div>
-        <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close mobile menu">×</button>
+
+    <div class="header-status-bar">
+      <div class="status-message" id="status">
+        <span class="icon">⚠️</span> <span id="statusText">Realtime stream error; switching to polling</span>
       </div>
-      <div class="mobile-menu-content">
-        <div class="mobile-menu-section">
-          <div class="mobile-menu-item">
-            <span id="mobileStatus">Loading…</span>
-          </div>
-        </div>
-        <div class="mobile-menu-section">
-          <button id="mobileThemeToggle" class="mobile-menu-btn-item">🌙 Theme</button>
-          <button id="mobileDownloadPdf" class="mobile-menu-btn-item">📄 Download PDF</button>
-          <button id="mobileLogout" class="mobile-menu-btn-item">🚪 Logout</button>
-        </div>
-        <div class="mobile-menu-section">
-          <label class="mobile-menu-item">
-            <input type="checkbox" id="mobileShowTrails"/>
-            <span>Show Trails</span>
-          </label>
-          <label class="mobile-menu-item">
-            <input type="checkbox" id="mobileFollowDevice"/>
-            <span>Follow Device</span>
-          </label>
-        </div>
-        <div class="mobile-menu-section">
-          <select id="mobileDeviceSelect" class="mobile-select">
-            <option value="">Select Device</option>
-          </select>
-          <select id="mobileApiEnv" class="mobile-select">
-            <option value="/">Local</option>
-            <option value="https://trae05is1njt-five.vercel.app">Production</option>
-          </select>
-          <input id="mobileApiKeyInput" placeholder="API key" class="mobile-input" />
-          <button id="mobileSaveApi" class="mobile-menu-btn-item">💾 Save API</button>
-        </div>
+    </div>
+
+    <div class="header-controls">
+      <div class="control-group">
+        <button id="themeToggle" class="control-btn">Theme</button>
+        <button id="downloadPdf" class="control-btn">Download PDF</button>
+        <button id="logoutBtn" class="control-btn">Logout</button>
+      </div>
+      <div class="control-group">
+        <label class="toggle-control"><input type="checkbox" id="showTrails" /> Traits</label>
+        <label class="toggle-control"><input type="checkbox" id="followDevice" /> Follow</label>
+      </div>
+      <div class="control-group">
+        <select id="deviceSelect" class="control-select"><option value="">Device 1</option></select>
+        <select id="apiEnv" class="control-select"><option value="production">Production</option></select>
+        <input id="apiKeyInput" type="text" placeholder="dev-key-12345" class="control-input" />
+        <button id="saveApi" class="save-btn">Save</button>
       </div>
     </div>
   </header>
-  <main>
-    <!-- Left Column: KPI + Smart Bins -->
-    <section class="top-left">
-      <div class="panel">
-        <h2>Key Performance Indicators</h2>
-        <div class="kpi-cards">
-          <div class="kpi-card"><div class="metric" id="kpiTotalBins">—</div><div class="label">Total bins</div></div>
-          <div class="kpi-card"><div class="metric critical" id="kpiCriticalBins">—</div><div class="label">Critical bins</div></div>
-          <div class="kpi-card"><div class="metric" id="kpiVehiclesService">—</div><div class="label">Vehicles in service</div></div>
-          <div class="kpi-card"><div class="metric" id="kpiPendingTasks">—</div><div class="label">Pending tasks</div></div>
-          <div class="kpi-card"><div class="metric" id="kpiUnreadAlerts">—</div><div class="label">Unread alerts</div></div>
+
+  <main class="main-grid">
+    <!-- Left Column -->
+    <div class="grid-col left-col">
+      <section class="panel alerts-panel">
+        <div id="alerts" class="alerts-list">
+          <!-- Alert Item Example -->
+          <div class="alert-item high">
+            <div class="alert-header">
+              <span class="alert-title">Bin Overflow</span>
+              <span class="alert-time">11:51:48</span>
+            </div>
+            <p class="alert-desc">Bin BIN003 at Penang Times Square is 90% full</p>
+          </div>
+          <div class="alert-item medium">
+            <div class="alert-header">
+              <span class="alert-title">Bin Overflow</span>
+              <span class="alert-time">11:51:48</span>
+            </div>
+            <p class="alert-desc">Bin BIN001 at Gurney Plaza Entrance is 75% full</p>
+          </div>
         </div>
-      </div>
-      <div class="panel">
-        <h2>Smart Bins</h2>
+      </section>
+
+      <section class="panel bins-panel">
+        <div class="panel-header">
+          <h2>SMART BINS</h2>
+        </div>
         <div class="bin-filters">
-          <select id="binAreaFilter" class="filter-select">
-            <option value="">All Areas</option>
-          </select>
-          <select id="binStatusFilter" class="filter-select">
-            <option value="">All Status</option>
-            <option value="normal">Normal (&lt;50%)</option>
-            <option value="medium">Medium (50-75%)</option>
-            <option value="high">High (75-90%)</option>
-            <option value="critical">Critical (&gt;90%)</option>
-          </select>
+          <select id="binAreaFilter" class="filter-select"><option>All Areas</option></select>
+          <select id="binStatusFilter" class="filter-select"><option>All Status</option></select>
         </div>
-        <div class="bins-grid" id="smartBins"></div>
-      </div>
-      <div class="panel">
-        <h2>Alerts</h2>
-        <div id="alerts" class="alerts-list"></div>
-      </div>
-    </section>
+        <div class="bins-grid" id="smartBins">
+          <!-- Bin Card Example -->
+        </div>
+      </section>
+    </div>
 
-    <!-- Center Column: Map View + Analytics -->
-    <section class="top-right">
-      <div class="panel">
-        <h2>Map View</h2>
+    <!-- Center Column -->
+    <div class="grid-col center-col">
+      <section class="panel map-panel">
         <div id="map"></div>
-      </div>
+      </section>
 
-      <div class="panel">
-        <h2>Advanced Analytics</h2>
-        <div class="analytics">
+      <section class="panel analytics-panel">
+        <div class="panel-header">
+          <h2>ADVANCED ANALYTICS</h2>
+        </div>
+        <div class="charts-grid">
           <div class="chart-card">
-            <h3 style="margin: 0 0 8px 0; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px;">Bin Fill Levels</h3>
+            <h3>Bin Fill Levels</h3>
             <canvas id="fillLevelChart"></canvas>
           </div>
           <div class="chart-card">
-            <h3 style="margin: 0 0 8px 0; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px;">Collection Performance</h3>
+            <h3>Collection Performance</h3>
             <canvas id="collectionPerformanceChart"></canvas>
           </div>
           <div class="chart-card">
-            <h3 style="margin: 0 0 8px 0; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px;">Waste Collection Trends</h3>
+            <h3>Waste Collection Trends</h3>
             <canvas id="wasteTrendsChart"></canvas>
           </div>
           <div class="chart-card">
-            <h3 style="margin: 0 0 8px 0; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px;">Contractor Efficiency</h3>
+            <h3>Contractor Efficiency</h3>
             <canvas id="contractorEfficiencyChart"></canvas>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-
-      <div class="panel">
-        <h2>Vehicles</h2>
-        <div id="vehicles" class="list"></div>
-        <div class="actions"><button id="addVehicleBtn" class="btn">Add Vehicle</button></div>
-      </div>
-      <div class="panel">
-        <h2>Contractors</h2>
-        <div id="contractors" class="list"></div>
-        <div class="actions"><button id="addContractorBtn" class="btn">Add Contractor</button></div>
-      </div>
-      <div class="panel">
-        <h2>Tasks</h2>
-        <div class="task-controls">
-          <button id="createTaskBtn" class="btn">Create Task</button>
-          <select id="taskStatusFilter" class="filter-select">
-            <option value="">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="in_progress">In Progress</option>
-            <option value="completed">Completed</option>
-          </select>
+      <section class="panel overview-panel">
+        <div class="panel-header">
+          <h2>OVERVIEW</h2>
         </div>
-        <table class="table" id="tasksTable">
-          <thead><tr><th>ID</th><th>Title</th><th>Status</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </section>
+        <div class="kpi-cards" id="kpiOverview">
+          <div class="kpi-card"><div class="metric" id="kpiTotalBins">—</div><div class="label">Total bins</div></div>
+          <div class="kpi-card"><div class="metric critical" id="kpiCriticalBins">—</div><div class="label">Critical bins</div></div>
+          <div class="kpi-card"><div class="metric" id="kpiHighFillBins">—</div><div class="label">High fill bins</div></div>
+          <div class="kpi-card"><div class="metric" id="kpiVehiclesService">—</div><div class="label">Vehicles in service</div></div>
+          <div class="kpi-card"><div class="metric" id="kpiTotalVehicles">—</div><div class="label">Total vehicles</div></div>
+          <div class="kpi-card"><div class="metric" id="kpiActiveContractors">—</div><div class="label">Active contractors</div></div>
+          <div class="kpi-card"><div class="metric" id="kpiPendingTasks">—</div><div class="label">Pending tasks</div></div>
+          <div class="kpi-card"><div class="metric" id="kpiUnreadAlerts">—</div><div class="label">Unread alerts</div></div>
+        </div>
+      </section>
+
+      <section class="panel tasks-panel">
+        <div class="panel-header">
+          <h2>TASKS</h2>
+          <button id="addTaskBtn" class="btn cyan-btn">Add Task</button>
+        </div>
+        <div class="table-wrapper">
+          <table class="table" id="tasksTable">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Task Title</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Task items will be rendered here -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+
+    <!-- Right Column -->
+    <div class="grid-col right-col">
+      <section class="panel vehicles-panel">
+        <div class="panel-header">
+          <h2>VEHICLES</h2>
+        </div>
+        <div id="vehicles" class="list">
+          <!-- Vehicle Item Example -->
+        </div>
+        <button id="addVehicleBtn" class="btn cyan-btn">Add Vehicle</button>
+      </section>
+
+      <section class="panel contractors-panel">
+        <div class="panel-header">
+          <h2>CONTRACTORS</h2>
+        </div>
+        <div id="contractors" class="list">
+          <!-- Contractor Item Example -->
+        </div>
+        <button id="addContractorBtn" class="btn cyan-btn">Add Contractor</button>
+      </section>
+    </div>
   </main>
 
   <!-- Updated Indicator -->
   <div class="update-indicator" id="updateIndicator">
     <span class="pulse"></span>
-    Last Updated: <span id="lastUpdated">Loading...</span>
+    Last Updated: <span id="updatedAt">Loading...</span>
   </div>
 
     <div class="modal" id="vehicleManageModal">

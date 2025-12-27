@@ -226,7 +226,7 @@
     }
   });
 
-  const statusEl = document.getElementById('status');
+  const statusEl = document.getElementById('statusText');
   const updatedEl = document.getElementById('updatedAt');
   const themeToggle = document.getElementById('themeToggle');
   const downloadPdfBtn = document.getElementById('downloadPdf');
@@ -254,13 +254,10 @@
   const vType = document.getElementById('vType');
   const vCap = document.getElementById('vCap');
   const vContractor = document.getElementById('vContractor');
-  const kpiVehiclesService = document.getElementById('kpiVehiclesService');
-  const kpiTotalVehicles = document.getElementById('kpiTotalVehicles');
-  const kpiActiveContractors = document.getElementById('kpiActiveContractors');
   const kpiTasksFinished = document.getElementById('kpiTasksFinished');
   const kpiTasksUnfinished = document.getElementById('kpiTasksUnfinished');
   const tasksTable = document.getElementById('tasksTable');
-  function setStatus(text) { statusEl.textContent = text; }
+  function setStatus(text) { if (statusEl) statusEl.textContent = text; }
   function setUpdated() { updatedEl.textContent = new Date().toLocaleTimeString(); }
 
   function cssVar(name, defaultValue = ''){
@@ -279,13 +276,10 @@
   themeToggle.addEventListener('click', () => {
     const current = document.documentElement.classList.contains('light') ? 'light' : 'dark';
     applyTheme(current === 'light' ? 'dark' : 'light');
-    if (charts.contractor) { try { charts.contractor.destroy(); } catch {} }
-    if (charts.status) { try { charts.status.destroy(); } catch {} }
-    if (charts.performance) { try { charts.performance.destroy(); } catch {} }
-    if (charts.utilization) { try { charts.utilization.destroy(); } catch {} }
-    charts.contractor = null; charts.status = null; charts.performance = null; charts.utilization = null;
+    // Re-initialize charts to apply new theme colors
     setupChartDefaults();
-    setupCharts();
+    setupAdvancedCharts();
+    refreshDashboard();
   });
   const savedTheme = localStorage.getItem('theme') || 'dark';
   applyTheme(savedTheme);
@@ -300,7 +294,7 @@
     localStorage.setItem('api_base', API_BASE);
     localStorage.setItem('api_key', API_KEY);
     headers['x-api-key'] = API_KEY;
-    initialLoad();
+    refreshDashboard();
   });
 
   // Global chart colors
@@ -339,39 +333,17 @@
       doc.setFontSize(10); doc.text(new Date().toLocaleString(), pad, y); y += 18;
       doc.setFontSize(12); doc.text(`Vehicles: ${metrics.totals.vehicles}`, pad, y); y += 16;
       doc.text(`Active: ${metrics.totals.active}  Idle: ${metrics.totals.idle}`, pad, y); y += 20;
-      const contractorImg = charts.contractor?.toBase64Image();
-      const statusImg = charts.status?.toBase64Image();
-      if (contractorImg) { doc.addImage(contractorImg, 'PNG', pad, y, 250, 160); }
-      if (statusImg) { doc.addImage(statusImg, 'PNG', pad + 270, y, 250, 160); }
+      const fillLevelImg = charts.fillLevel?.toBase64Image();
+      const performanceImg = charts.collectionPerformance?.toBase64Image();
+      if (fillLevelImg) { doc.addImage(fillLevelImg, 'PNG', pad, y, 250, 160); }
+      if (performanceImg) { doc.addImage(performanceImg, 'PNG', pad + 270, y, 250, 160); }
       y += 180;
       doc.setFontSize(12); doc.text('Vehicles by Contractor', pad, y); y += 14;
       metrics.byContractor.forEach((c) => { doc.text(`${c.name}: ${c.vehicles}`, pad, y); y += 14; });
       doc.save('MBPP-Report.pdf');
     } catch (error) {
-      // Handle demo mode or API errors
-      console.log('Initial load failed, loading demo data:', error.message);
-      
-      // Load demo data
-      renderTotals({ vehicles: 2, active: 1, idle: 1 });
-      renderOverview({ totals: { vehicles: 2, active: 1, idle: 1, activeContractors: 1 } });
-      renderContractors(demoContractors);
-      renderVehicles(demoVehicles);
-      renderTasks(demoTasks);
-      
-      if (!charts.contractor) { setupChartDefaults(); setupCharts(); }
-      const demoMetrics = {
-        totals: { vehicles: 2, active: 1, idle: 1 },
-        byContractor: demoContractors.map((c, i) => ({
-          name: c.name,
-          vehicles: c.vehicles,
-          contractorId: i + 1
-        })),
-        byStatus: { active: 1, idle: 1 },
-        tasks: { finished: 2, unfinished: 2 }
-      };
-      updateCharts(demoMetrics);
-      setUpdated();
-      return true;
+      console.error('PDF generation failed:', error);
+      alert('Failed to generate PDF report');
     }
   }
   downloadPdfBtn?.addEventListener('click', downloadPdf);
@@ -396,12 +368,259 @@
   let map = L.map('map').setView([5.417, 100.329], 12);
   console.log('Map initialized:', map);
   const ISLAND_BOUNDS = L.latLngBounds([5.26, 100.20], [5.50, 100.35]);
+
+  // Vehicle Icon System with SVG-based markers for better performance and accessibility
+  const VEHICLE_ICONS = {
+    // Collection Trucks - Large waste collection vehicles
+    'collection_truck': {
+      svg: '<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#2563eb" d="M4 12h24l-2 8H6L4 12zm0-2l2-6h16l2 6H4z"/><rect fill="#1e40af" x="8" y="6" width="4" height="4"/><rect fill="#1e40af" x="20" y="6" width="4" height="4"/><circle fill="#fbbf24" cx="12" cy="24" r="3"/><circle fill="#fbbf24" cx="24" cy="24" r="3"/></svg>',
+      color: '#2563eb',
+      size: [32, 32],
+      className: 'vehicle-icon-collection-truck',
+      label: 'Collection Truck'
+    },
+    'garbage_truck': {
+      svg: '<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#16a34a" d="M4 12h24l-2 8H6L4 12zm0-2l2-6h16l2 6H4z"/><rect fill="#15803d" x="8" y="6" width="4" height="4"/><rect fill="#15803d" x="20" y="6" width="4" height="4"/><circle fill="#fbbf24" cx="12" cy="24" r="3"/><circle fill="#fbbf24" cx="24" cy="24" r="3"/><path fill="#dc2626" d="M10 4h12v2H10z"/></svg>',
+      color: '#16a34a',
+      size: [32, 32],
+      className: 'vehicle-icon-garbage-truck',
+      label: 'Garbage Truck'
+    },
+    // Side Loaders - Medium waste collection vehicles
+    'side_loader': {
+      svg: '<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#7c3aed" d="M6 10h20l-2 8H8L6 10zm0-2l2-4h12l2 4H6z"/><rect fill="#6d28d9" x="10" y="6" width="3" height="3"/><rect fill="#6d28d9" x="19" y="6" width="3" height="3"/><circle fill="#fbbf24" cx="12" cy="22" r="3"/><circle fill="#fbbf24" cx="20" cy="22" r="3"/><path fill="#f59e0b" d="M14 8h4v2h-4z"/></svg>',
+      color: '#7c3aed',
+      size: [28, 28],
+      className: 'vehicle-icon-side-loader',
+      label: 'Side Loader'
+    },
+    // Front Loaders - Front-end loading vehicles
+    'front_loader': {
+      svg: '<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#ea580c" d="M5 11h22l-2 7H7L5 11zm0-2l2-5h14l2 5H5z"/><rect fill="#dc2626" x="9" y="6" width="4" height="4"/><rect fill="#dc2626" x="19" y="6" width="4" height="4"/><circle fill="#fbbf24" cx="13" cy="22" r="3"/><circle fill="#fbbf24" cx="23" cy="22" r="3"/><path fill="#f59e0b" d="M8 4h16v2H8z"/></svg>',
+      color: '#ea580c',
+      size: [30, 30],
+      className: 'vehicle-icon-front-loader',
+      label: 'Front Loader'
+    },
+    // Compactor Trucks - Waste compaction vehicles
+    'compactor_truck': {
+      svg: '<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#0891b2" d="M4 13h24l-1 7H5l-1-7zm0-3l1-5h18l1 5H4z"/><rect fill="#0e7490" x="8" y="7" width="4" height="3"/><rect fill="#0e7490" x="20" y="7" width="4" height="3"/><circle fill="#fbbf24" cx="12" cy="22" r="3"/><circle fill="#fbbf24" cx="22" cy="22" r="3"/><path fill="#f59e0b" d="M12 5h8v2h-8z"/></svg>',
+      color: '#0891b2',
+      size: [32, 32],
+      className: 'vehicle-icon-compactor-truck',
+      label: 'Compactor Truck'
+    },
+    // Small Vehicles - Compact service vehicles
+    'pickup_truck': {
+      svg: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path fill="#dc2626" d="M4 16h16l-1 4H5l-1-4zm0-2l1-4h10l1 4H4z"/><rect fill="#b91c1c" x="6" y="10" width="3" height="2"/><rect fill="#b91c1c" x="14" y="10" width="3" height="2"/><circle fill="#fbbf24" cx="8" cy="22" r="2"/><circle fill="#fbbf24" cx="16" cy="22" r="2"/></svg>',
+      color: '#dc2626',
+      size: [24, 24],
+      className: 'vehicle-icon-pickup-truck',
+      label: 'Pickup Truck'
+    },
+    'van': {
+      svg: '<svg viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg"><rect fill="#64748b" x="4" y="8" width="20" height="10"/><rect fill="#475569" x="6" y="10" width="8" height="6"/><rect fill="#475569" x="18" y="10" width="4" height="6"/><circle fill="#fbbf24" cx="10" cy="22" r="2"/><circle fill="#fbbf24" cx="18" cy="22" r="2"/></svg>',
+      color: '#64748b',
+      size: [26, 26],
+      className: 'vehicle-icon-van',
+      label: 'Service Van'
+    },
+    // Special Vehicles - Equipment transporters
+    'sweeper': {
+      svg: '<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path fill="#9333ea" d="M4 14h24l-1 6H5l-1-6zm0-3l1-4h18l1 4H4z"/><rect fill="#7e22ce" x="8" y="9" width="3" height="3"/><rect fill="#7e22ce" x="21" y="9" width="3" height="3"/><circle fill="#fbbf24" cx="11" cy="24" r="3"/><circle fill="#fbbf24" cx="21" cy="24" r="3"/><path fill="#f59e0b" d="M6 6h20v1H6z"/></svg>',
+      color: '#9333ea',
+      size: [30, 30],
+      className: 'vehicle-icon-sweeper',
+      label: 'Street Sweeper'
+    },
+    // Default/Unknown vehicle
+    'default': {
+      svg: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect fill="#6b7280" x="4" y="10" width="16" height="6"/><rect fill="#4b5563" x="6" y="12" width="3" height="2"/><rect fill="#4b5563" x="15" y="12" width="3" height="2"/><circle fill="#fbbf24" cx="8" cy="18" r="2"/><circle fill="#fbbf24" cx="16" cy="18" r="2"/></svg>',
+      color: '#6b7280',
+      size: [24, 24],
+      className: 'vehicle-icon-default',
+      label: 'Unknown Vehicle'
+    }
+  };
+
+  // Vehicle type mapping system - maps various type strings to icon keys
+  const VEHICLE_TYPE_MAPPING = {
+    // Collection Trucks
+    'collection truck': 'collection_truck',
+    'collection-truck': 'collection_truck',
+    'collection': 'collection_truck',
+    'garbage truck': 'garbage_truck',
+    'garbage-truck': 'garbage_truck',
+    'garbage': 'garbage_truck',
+    'waste truck': 'collection_truck',
+    'waste-truck': 'collection_truck',
+    
+    // Loaders
+    'side loader': 'side_loader',
+    'side-loader': 'side_loader',
+    'side': 'side_loader',
+    'front loader': 'front_loader',
+    'front-loader': 'front_loader',
+    'front': 'front_loader',
+    'loader': 'side_loader',
+    
+    // Compactors
+    'compactor truck': 'compactor_truck',
+    'compactor-truck': 'compactor_truck',
+    'compactor': 'compactor_truck',
+    'compactor vehicle': 'compactor_truck',
+    
+    // Small Vehicles
+    'pickup truck': 'pickup_truck',
+    'pickup-truck': 'pickup_truck',
+    'pickup': 'pickup_truck',
+    'van': 'van',
+    'service van': 'van',
+    'service-van': 'van',
+    
+    // Special Vehicles
+    'sweeper': 'sweeper',
+    'street sweeper': 'sweeper',
+    'street-sweeper': 'sweeper',
+    'sweeping vehicle': 'sweeper',
+    
+    // Common variations and fallbacks
+    'truck': 'collection_truck',
+    'lorry': 'collection_truck',
+    'vehicle': 'default',
+    'car': 'pickup_truck',
+    'suv': 'van',
+    'bus': 'collection_truck'
+  };
+
+  // Icon cache for performance optimization
+  const iconCache = new Map();
+
+  // Function to normalize vehicle type string
+  function normalizeVehicleType(type) {
+    if (!type) return 'default';
+    const normalized = type.toLowerCase().trim();
+    return VEHICLE_TYPE_MAPPING[normalized] || 'default';
+  }
+
+  // Function to create vehicle icon with proper caching and accessibility
+  function createVehicleIcon(vehicleType, speed = 0, deviceInfo = {}) {
+    const iconKey = normalizeVehicleType(vehicleType);
+    const baseIcon = VEHICLE_ICONS[iconKey] || VEHICLE_ICONS.default;
+    
+    // Create cache key based on vehicle type and status
+    const isMoving = speed > 0;
+    const cacheKey = `${iconKey}_${isMoving ? 'moving' : 'stopped'}_${deviceInfo.deviceId || 'unknown'}`;
+    
+    if (iconCache.has(cacheKey)) {
+      return iconCache.get(cacheKey);
+    }
+    
+    // Modify icon color based on vehicle status
+    const statusColor = isMoving ? '#10b981' : '#ef4444';
+    const svgWithStatus = baseIcon.svg.replace(/fill="[^"]*"/g, `fill="${statusColor}"`);
+    
+    // Create custom icon with accessibility features
+    const icon = L.divIcon({
+      className: `vehicle-marker ${baseIcon.className} ${isMoving ? 'vehicle-moving' : 'vehicle-stopped'}`,
+      html: `
+        <div class="vehicle-icon-container" 
+             role="img" 
+             aria-label="${baseIcon.label} - ${isMoving ? 'Moving' : 'Stopped'}"
+             data-vehicle-type="${baseIcon.label}"
+             data-vehicle-id="${deviceInfo.deviceId || 'unknown'}"
+             data-vehicle-status="${isMoving ? 'moving' : 'stopped'}">
+          <div class="vehicle-icon-svg">${svgWithStatus}</div>
+          ${isMoving ? '<div class="pulse-indicator"></div>' : ''}
+        </div>
+      `,
+      iconSize: baseIcon.size,
+      iconAnchor: [baseIcon.size[0] / 2, baseIcon.size[1] / 2],
+      popupAnchor: [0, -baseIcon.size[1] / 2],
+      tooltipAnchor: [baseIcon.size[0] / 2, 0]
+    });
+    
+    // Cache the icon
+    iconCache.set(cacheKey, icon);
+    
+    // Limit cache size to prevent memory issues
+    if (iconCache.size > 100) {
+      const firstKey = iconCache.keys().next().value;
+      iconCache.delete(firstKey);
+    }
+    
+    return icon;
+  }
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; OpenStreetMap',
     errorTileUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
     crossOrigin: true
   }).addTo(map);
+
+  // Add vehicle legend to map
+  function createVehicleLegend() {
+    const legend = L.control({ position: 'bottomleft' });
+    
+    legend.onAdd = function(map) {
+      const div = L.DomUtil.create('div', 'vehicle-legend');
+      div.innerHTML = `
+        <h4>Vehicle Types</h4>
+        <div class="vehicle-legend-item">
+          <div class="vehicle-legend-icon">${VEHICLE_ICONS.collection_truck.svg}</div>
+          <div class="vehicle-legend-text">Collection Truck</div>
+        </div>
+        <div class="vehicle-legend-item">
+          <div class="vehicle-legend-icon">${VEHICLE_ICONS.garbage_truck.svg}</div>
+          <div class="vehicle-legend-text">Garbage Truck</div>
+        </div>
+        <div class="vehicle-legend-item">
+          <div class="vehicle-legend-icon">${VEHICLE_ICONS.side_loader.svg}</div>
+          <div class="vehicle-legend-text">Side Loader</div>
+        </div>
+        <div class="vehicle-legend-item">
+          <div class="vehicle-legend-icon">${VEHICLE_ICONS.front_loader.svg}</div>
+          <div class="vehicle-legend-text">Front Loader</div>
+        </div>
+        <div class="vehicle-legend-item">
+          <div class="vehicle-legend-icon">${VEHICLE_ICONS.compactor_truck.svg}</div>
+          <div class="vehicle-legend-text">Compactor Truck</div>
+        </div>
+        <div class="vehicle-legend-item">
+          <div class="vehicle-legend-icon">${VEHICLE_ICONS.pickup_truck.svg}</div>
+          <div class="vehicle-legend-text">Pickup Truck</div>
+        </div>
+        <div class="vehicle-legend-item">
+          <div class="vehicle-legend-icon">${VEHICLE_ICONS.van.svg}</div>
+          <div class="vehicle-legend-text">Service Van</div>
+        </div>
+        <div class="vehicle-legend-item">
+          <div class="vehicle-legend-icon">${VEHICLE_ICONS.sweeper.svg}</div>
+          <div class="vehicle-legend-text">Street Sweeper</div>
+        </div>
+        <div class="vehicle-legend-item">
+          <div class="vehicle-legend-icon">${VEHICLE_ICONS.default.svg}</div>
+          <div class="vehicle-legend-text">Unknown Vehicle</div>
+        </div>
+        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); font-size: 11px; color: var(--muted);">
+          <div style="margin-bottom: 4px;">● Green: Moving</div>
+          <div>● Red: Stopped</div>
+        </div>
+      `;
+      
+      // Prevent map interactions on legend
+      L.DomEvent.disableClickPropagation(div);
+      L.DomEvent.disableScrollPropagation(div);
+      
+      return div;
+    };
+    
+    return legend;
+  }
+  
+  // Add legend to map
+  const vehicleLegend = createVehicleLegend();
+  vehicleLegend.addTo(map);
 
   const markers = new Map();
   const trails = new Map();
@@ -433,41 +652,74 @@ const charts = {};
   deviceSelectEl?.addEventListener('change', () => { selectedDeviceId = deviceSelectEl.value; });
 
   function upsertMarker(p){
-    console.log('Adding/updating marker for:', p);
-    const key = String(p.deviceId);
-    let pos = [p.latitude, p.longitude];
+    console.log('[Dashboard] Adding/updating marker for:', p);
     
-    console.log('Position:', pos, 'Bounds contains:', ISLAND_BOUNDS.contains(pos));
+    // Validate required fields
+    if (!p || typeof p.deviceId === 'undefined') {
+      console.warn('[Dashboard] Invalid position data, missing deviceId:', p);
+      return;
+    }
+    
+    if (!p.latitude || !p.longitude) {
+      console.warn('[Dashboard] Invalid coordinates for device', p.deviceId, ':', p);
+      return;
+    }
+    
+    const key = String(p.deviceId);
+    let pos = [parseFloat(p.latitude), parseFloat(p.longitude)];
+    
+    // Check for valid coordinates
+    if (isNaN(pos[0]) || isNaN(pos[1])) {
+      console.warn('[Dashboard] Invalid coordinate values for device', p.deviceId, ':', pos);
+      return;
+    }
+    
+    console.log('[Dashboard] Position:', pos, 'Bounds contains:', ISLAND_BOUNDS.contains(pos));
     if (!ISLAND_BOUNDS.contains(pos)) {
       if (p.demo) {
         pos = clampToBounds(pos[0], pos[1]);
-        console.log('Clamped position:', pos);
+        console.log('[Dashboard] Clamped position:', pos);
       } else {
-        console.log('Position out of bounds, skipping');
+        console.log('[Dashboard] Position out of bounds, skipping device:', p.deviceId);
         return;
       }
     }
     
-    // Start with simple default marker first
+    // Create popup content with enhanced vehicle information
+    const speed = parseFloat(p.speed) || 0;
+    const vehicleInfo = vehiclesList.find(v => v.id == p.deviceId || v.vehicle_id == p.deviceId) || {};
+    const vehicleType = vehicleInfo.type || vehicleInfo.vehicle_type || 'default';
+    const vehicleLabel = vehicleInfo.plate || vehicleInfo.registration_number || `Vehicle ${p.deviceId}`;
+    
     const label = `<div class="popup-content">
-      <strong>Vehicle ${p.deviceId}</strong><br>
-      Speed: ${p.speed?.toFixed?.(1) ?? 0} km/h<br>
-      Status: ${p.speed > 0 ? '<span style="color: #22c55e;">Moving</span>' : '<span style="color: #ef4444;">Stopped</span>'}<br>
-      Position: ${p.latitude.toFixed(4)}, ${p.longitude.toFixed(4)}
+      <strong>${vehicleLabel}</strong><br>
+      <em>Type: ${vehicleType}</em><br>
+      Speed: ${speed.toFixed(1)} km/h<br>
+      Status: ${speed > 0 ? '<span style="color: #22c55e;">Moving</span>' : '<span style="color: #ef4444;">Stopped</span>'}<br>
+      Position: ${pos[0].toFixed(4)}, ${pos[1].toFixed(4)}<br>
+      ${vehicleInfo.driver_name ? `Driver: ${vehicleInfo.driver_name}<br>` : ''}
+      ${vehicleInfo.fuel_level ? `Fuel: ${vehicleInfo.fuel_level}%<br>` : ''}
+      <small>Last Update: ${p.serverTime || p.timestamp || new Date().toISOString()}</small>
     </div>`;
     
+    // Create enhanced vehicle icon with proper type and status
+    const icon = createVehicleIcon(vehicleType, speed, { deviceId: p.deviceId, ...vehicleInfo });
+
     if (markers.has(key)) {
       const m = markers.get(key);
-      console.log('Updating existing marker:', m);
+      console.log('[Dashboard] Updating existing marker:', m);
       m.setLatLng(pos);
+      m.setIcon(icon);
       m.setPopupContent(label);
     } else {
-      console.log('Creating new marker at:', pos);
-      const m = L.marker(pos).addTo(map).bindPopup(label);
+      console.log('[Dashboard] Creating new marker at:', pos);
+      const m = L.marker(pos, { icon }).addTo(map).bindPopup(label);
       markers.set(key, m);
-      console.log('New marker created:', m);
+      console.log('[Dashboard] New marker created:', m);
     }
+    
     updateDeviceSelect(p.deviceId);
+    
     if (showTrailsEl?.checked) {
       const arr = trailPoints.get(key) || [];
       arr.push(pos);
@@ -482,6 +734,7 @@ const charts = {};
     } else if (trails.has(key)) {
       trails.get(key).remove(); trails.delete(key); trailPoints.delete(key);
     }
+    
     if (followDeviceEl?.checked && selectedDeviceId === key) {
       const arr = trailPoints.get(key) || [pos];
       const b = L.latLngBounds(arr);
@@ -519,12 +772,26 @@ const charts = {};
   }
   function renderVehicles(list){
     const el = document.getElementById('vehicles');
+    if (!el) {
+      console.error('[Dashboard] Vehicles container element not found');
+      return;
+    }
     el.innerHTML = '';
-    vehiclesList = list;
-    list.forEach(v => {
+    vehiclesList = list || [];
+    console.log('[Dashboard] Rendering vehicles:', vehiclesList.length, 'vehicles');
+    
+    if (vehiclesList.length === 0) {
+      el.innerHTML = '<div class="item"><span>No vehicles available</span></div>';
+      return;
+    }
+    
+    vehiclesList.forEach(v => {
       const div = document.createElement('div');
       div.className = 'item';
-      div.innerHTML = `<span>${v.plate}</span><span class="badge">${v.type}</span>`;
+      // Handle different field names from API
+      const plate = v.plate || v.registration_number || v.vehicle_id || 'Unknown';
+      const type = v.type || v.vehicle_type || 'Unknown';
+      div.innerHTML = `<span>${plate}</span><span class="badge">${type}</span>`;
       el.appendChild(div);
     });
   }
@@ -986,506 +1253,155 @@ const charts = {};
     showModal();
   }
 
-  async function initialLoad(){
-    // Try to load real data first, fall back to demo if API fails
+  // Consolidated dashboard refresh logic with comprehensive logging
+  async function refreshDashboard() {
+    console.log('[Dashboard] Starting data refresh at:', new Date().toISOString());
+    const startTime = performance.now();
+    
+    // Verify critical DOM elements exist before proceeding
+    const smartBinsContainerCheck = document.getElementById('smartBins');
+    if (!smartBinsContainerCheck) {
+      console.error('[Dashboard] Critical: smartBinsContainer not found, skipping refresh');
+      return false;
+    }
+    
     try {
-      const health = await getJson('/api/health');
-      setStatus(`Server OK • Traccar ${health.traccarConfigured ? 'connected' : 'fallback'}`);
-      const metrics = await getJson('/api/metrics');
-      renderTotals(metrics);
-      if (!charts.contractor) { setupChartDefaults(); setupCharts(); }
-      updateCharts(metrics);
-      const contractors = await getJson('/api/contractors');
-      const byId = new Map((metrics.byContractor || []).map(x => [Number(x.contractorId ?? x.id), x.vehicles]));
-      const merged = contractors.map(co => ({
-        ...co,
-        contractorId: co.id ?? co.contractorId,
-        vehicles: byId.get(Number(co.id ?? co.contractorId)) || 0
-      }));
-      renderContractors(merged);
-      const vehicles = await getJson('/api/vehicles');
-      renderVehicles(vehicles);
-      try {
-        const tasks = await getJson('/api/tasks');
-        renderTasks(tasks);
-      } catch {}
-      renderOverview(metrics);
-      const positions = await getJson('/api/positions');
-      positions.forEach(upsertMarker);
+      // Step 1: Fetch all data sources in parallel
+      const [
+        health,
+        summary,
+        bins,
+        alerts,
+        tasks,
+        vehicles,
+        contractors,
+        positions
+      ] = await Promise.all([
+        getJson('/api/health').catch(e => ({ status: 'error', error: e.message })),
+        getJson('/api/dashboard-summary').catch(e => null),
+        getJson('/api/smart-bins').catch(e => []),
+        getJson('/api/alerts').catch(e => []),
+        getJson('/api/collection-tasks').catch(e => []),
+        getJson('/api/vehicles').catch(e => []),
+        getJson('/api/contractors').catch(e => []),
+        getJson('/api/positions').catch(e => [])
+      ]);
+
+      console.log('[Dashboard] Data fetch completed in', (performance.now() - startTime).toFixed(2), 'ms');
+
+      // Step 2: Update Server Status
+      if (health && health.status === 'ok') {
+        setStatus(`Server OK • Traccar ${health.traccarConfigured ? 'connected' : 'fallback'}`);
+      } else {
+        setStatus('Server unreachable or error; using local data if available');
+      }
+
+      // Step 3: Map and Bind KPI Data
+      if (summary && summary.overview) {
+        const ov = summary.overview;
+        console.log('[Dashboard] Updating KPIs from summary:', ov);
+        
+        if (kpiTotalBins) kpiTotalBins.textContent = ov.total_bins ?? 0;
+        if (kpiCriticalBins) kpiCriticalBins.textContent = ov.critical_bins ?? 0;
+        if (kpiHighFillBins) kpiHighFillBins.textContent = ov.high_fill_bins ?? 0;
+        if (kpiVehiclesService) kpiVehiclesService.textContent = ov.active_vehicles ?? 0;
+        if (kpiTotalVehicles) kpiTotalVehicles.textContent = vehicles.length || ov.total_vehicles || 0;
+        if (kpiActiveContractors) kpiActiveContractors.textContent = ov.contractors_active ?? 0;
+        if (kpiPendingTasks) kpiPendingTasks.textContent = ov.pending_tasks ?? 0;
+        if (kpiUnreadAlerts) kpiUnreadAlerts.textContent = ov.unread_alerts ?? 0;
+      } else {
+        console.warn('[Dashboard] Dashboard summary missing or malformed, loading demo KPIs');
+        loadDemoKPIData();
+      }
+
+      // Step 4: Update Global Lists and UI Components
+      alertsList = alerts;
+      collectionTasksList = tasks;
+      vehiclesList = vehicles;
+      contractorsList = contractors;
+
+      if (bins && bins.length > 0) {
+        smartBinsList = bins;
+        console.log('[Dashboard] Loading bins from API:', bins.length, 'bins');
+        renderSmartBins(bins);
+      } else {
+        console.log('[Dashboard] No bins from API, loading demo bins data');
+        loadDemoSmartBinsData();
+      }
+      
+      if (vehicles && vehicles.length > 0) {
+        renderVehicles(vehicles);
+      } else {
+        console.log('[Dashboard] No vehicles from API, loading demo vehicles data');
+        loadDemoVehiclesData();
+      }
+      
+      if (contractors && contractors.length > 0) {
+        renderContractors(contractors);
+      } else {
+        console.log('[Dashboard] No contractors from API, loading demo contractors data');
+        loadDemoContractorsData();
+      }
+      
+      renderAlerts(alerts);
+      renderCollectionTasks(tasks);
+      
+      // Step 5: Update Map Markers
+      if (positions && positions.length > 0) {
+        console.log('[Dashboard] Processing', positions.length, 'vehicle positions');
+        positions.forEach(upsertMarker);
+      } else {
+        console.log('[Dashboard] No positions from API, loading demo vehicle data');
+        loadDemoVehicleData();
+      }
+      
+      if (bins && bins.length > 0) {
+        console.log('[Dashboard] Processing', bins.length, 'bin markers');
+        bins.forEach(upsertBinMarker);
+      } else {
+        console.log('[Dashboard] No bins from API for markers');
+      }
+
+      // Step 6: Update Charts
+      updateAdvancedCharts(bins, summary);
+      
       setUpdated();
+      console.log('[Dashboard] Refresh complete');
       return true;
-    } catch (e) {
-      console.log('API calls failed, switching to demo mode:', e.message);
-      setStatus('Demo mode: static sample data');
-      const demoVehicles = [
-        { plate: 'PMG 1234', type: 'Compactor' },
-        { plate: 'PMG 5678', type: 'Tipper' }
-      ];
-      const demoContractors = [
-        { name: 'Contractor A', vehicles: 1 },
-        { name: 'Contractor B', vehicles: 1 }
-      ];
-      const demoTasks = [
-        { id: 101, title: 'Zone A collection', status: 'finished', contractorId: 10 },
-        { id: 102, title: 'Zone B collection', status: 'unfinished', contractorId: 11 },
-        { id: 103, title: 'Bulky pickup - Jelutong', status: 'unfinished', contractorId: 10 },
-        { id: 104, title: 'Street sweeping - Georgetown', status: 'finished', contractorId: 11 }
-      ];
+
+    } catch (error) {
+      console.error('[Dashboard] Critical refresh error:', error);
+      setStatus('Refresh error; check console for details');
       
-      // First set the data lists, then render
-      vehiclesList = demoVehicles;
-      contractorsList = demoContractors;
-      tasksList = demoTasks;
-      
-      renderVehicles(demoVehicles);
-      renderContractors(demoContractors);
-      renderTotals({ totals: { vehicles: 2, active: 1, idle: 1 } });
-      renderTasks(demoTasks);
-      renderOverview({ totals: { vehicles: 2, active: 1, idle: 1, activeContractors: 1 } });
-      
-      // Update charts with demo data
-      if (!charts.contractor) { setupChartDefaults(); setupCharts(); }
-      const demoMetrics = {
-        totals: { vehicles: 2, active: 1, idle: 1 },
-        byContractor: demoContractors.map((c, i) => ({
-          name: c.name,
-          vehicles: c.vehicles,
-          contractorId: i + 1
-        }))
-      };
-      
-      // Demo data for vehicles
-      const demoPositions = [
-        { deviceId: 1, latitude: 5.417, longitude: 100.329, speed: 10, demo: true },
-        { deviceId: 2, latitude: 5.420, longitude: 100.315, speed: 0, demo: true }
-      ];
-      
-      updateCharts(demoMetrics);
-      
-      // Create demo vehicle markers
-      demoPositions.forEach(position => upsertMarker(position));
-      
-      setUpdated();
-      return true;
+      // Fallback to demo data if critical error occurs
+      if (smartBinsList.length === 0) {
+        console.log('[Dashboard] Triggering demo data fallback');
+        loadDemoSmartBinsData();
+        loadDemoVehicleData();
+      }
+      return false;
     }
   }
-  
-  function subscribe(){
-    try {
-      const sse = new EventSource(joinUrl(API_BASE, `/api/stream/positions?api_key=${encodeURIComponent(API_KEY)}`), { withCredentials: false });
-      sse.onmessage = (e) => {
-        try {
-          const arr = JSON.parse(e.data);
-          arr.forEach(upsertMarker);
-        } catch {}
-      };
-      sse.onerror = async () => {
-        setStatus('Realtime stream error; switching to polling');
-        sse.close();
-        setInterval(async () => {
-          try {
-            const positions = await getJson('/api/positions');
-            positions.forEach(upsertMarker);
-          } catch {}
-        }, 5000);
-      };
-    } catch {}
-  }
 
-  // Run API polling for metrics updates
-  setInterval(async () => {
-    try {
-      const metrics = await getJson('/api/metrics');
-      renderTotals(metrics);
-      updateCharts(metrics);
-      renderOverview(metrics);
-      setUpdated();
-    } catch {}
-  }, 10000);
+  // Auto-refresh dashboard every 30 seconds
+  setInterval(refreshDashboard, 30000);
 
-  // Start loading data immediately
-  console.log('Starting initial load...');
-  initialLoad().then(success => {
-    console.log('Initial load completed, success:', success);
+  // Initial load
+  console.log('[Dashboard] Initiating first load...');
+  refreshDashboard().then(success => {
     if (success) subscribe();
   });
+
   
-  function setupCharts(){
-    const cc = document.getElementById('contractorChart');
-    const sc = document.getElementById('statusChart');
-    
-    if (!cc || !sc) {
-      console.log('Chart containers not found, skipping chart setup');
-      return;
-    }
-    
-    // Enhanced contractor chart with gradient
-    const ctx = cc.getContext('2d');
-    const gradient = ctx.createLinearGradient(0, 0, 0, cc.height);
-    gradient.addColorStop(0, chartColors.accent);
-    gradient.addColorStop(1, 'rgba(6,182,212,0.2)');
-    
-    const gradientHover = ctx.createLinearGradient(0, 0, 0, cc.height);
-    gradientHover.addColorStop(0, chartColors.accentLight);
-    gradientHover.addColorStop(1, 'rgba(34,211,238,0.3)');
+    // Legacy setupCharts removed
 
-    charts.contractor = new Chart(cc, {
-      type: 'bar',
-      data: { 
-        labels: [], 
-        datasets: [{
-          label: 'Vehicles by Contractor',
-          data: [],
-          backgroundColor: gradient,
-          hoverBackgroundColor: gradientHover,
-          borderRadius: 8,
-          borderSkipped: false,
-          borderWidth: 2,
-          borderColor: chartColors.accent,
-          hoverBorderWidth: 3
-        }] 
-      },
-      options: { 
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: {
-          intersect: false,
-          mode: 'index'
-        },
-        plugins: { 
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: 'rgba(15, 23, 42, 0.9)',
-            titleColor: chartColors.text,
-            bodyColor: chartColors.muted,
-            borderColor: chartColors.accent,
-            borderWidth: 1,
-            cornerRadius: 8,
-            padding: 12,
-            displayColors: false,
-            callbacks: {
-              label: function(context) {
-                const value = context.parsed.y;
-                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                const percentage = ((value / total) * 100).toFixed(1);
-                return `Vehicles: ${value} (${percentage}%)`;
-              }
-            }
-          }
-        }, 
-        scales: { 
-          y: { 
-            beginAtZero: true, 
-            grid: { 
-              color: chartColors.border,
-              drawBorder: false
-            },
-            ticks: {
-              color: chartColors.muted,
-              font: { size: 11 }
-            }
-          }, 
-          x: { 
-            grid: { display: false },
-            ticks: {
-              color: chartColors.muted,
-              font: { size: 11 },
-              maxRotation: 45,
-              minRotation: 45
-            }
-          } 
-        },
-        animation: {
-          duration: 1000,
-          easing: 'easeInOutQuart'
-        }
-      }
-    });
-
-    // Enhanced status chart (doughnut)
-    charts.status = new Chart(sc, {
-      type: 'doughnut',
-      data: { 
-        labels: ['Active','Idle'], 
-        datasets: [{
-          data: [0,0],
-          backgroundColor: [chartColors.accent, chartColors.border],
-          borderColor: ['rgba(6,182,212,0.8)', 'rgba(51,65,85,0.8)'],
-          borderWidth: 2,
-          hoverOffset: 8,
-          hoverBorderWidth: 3
-        }] 
-      },
-      options: { 
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '65%',
-        interaction: {
-          intersect: false,
-          mode: 'nearest'
-        },
-        plugins: { 
-          legend: { 
-            position: 'bottom',
-            labels: {
-              color: chartColors.muted,
-              font: { size: 12 },
-              padding: 15,
-              usePointStyle: true,
-              pointStyle: 'circle'
-            }
-          },
-          tooltip: {
-            backgroundColor: 'rgba(15, 23, 42, 0.9)',
-            titleColor: chartColors.text,
-            bodyColor: chartColors.muted,
-            borderColor: chartColors.accent,
-            borderWidth: 1,
-            cornerRadius: 8,
-            padding: 12,
-            displayColors: true,
-            callbacks: {
-              label: function(context) {
-                const value = context.parsed;
-                const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                const percentage = ((value / total) * 100).toFixed(1);
-                return `${context.label}: ${value} (${percentage}%)`;
-              }
-            }
-          }
-        },
-        animation: {
-          animateRotate: true,
-          animateScale: true,
-          duration: 1000,
-          easing: 'easeInOutQuart'
-        }
-      }
-    });
-
-    // Performance trends chart (line chart)
-    const pc = document.getElementById('performanceChart');
-    if (pc) {
-      const pctx = pc.getContext('2d');
-      const perfGradient = pctx.createLinearGradient(0, 0, 0, pc.height);
-      perfGradient.addColorStop(0, chartColors.accent);
-      perfGradient.addColorStop(1, 'rgba(6,182,212,0.1)');
-
-      charts.performance = new Chart(pc, {
-        type: 'line',
-        data: {
-          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-          datasets: [{
-            label: 'Collections',
-            data: [12, 19, 15, 25, 22, 30, 28],
-            borderColor: chartColors.accent,
-            backgroundColor: perfGradient,
-            borderWidth: 3,
-            fill: true,
-            tension: 0.4,
-            pointBackgroundColor: accent,
-            pointBorderColor: '#fff',
-            pointBorderWidth: 2,
-            pointRadius: 5,
-            pointHoverRadius: 7
-          }, {
-            label: 'Efficiency %',
-            data: [85, 88, 82, 92, 89, 94, 91],
-            borderColor: chartColors.accentLight,
-            backgroundColor: 'rgba(34,211,238,0.1)',
-            borderWidth: 2,
-            fill: false,
-            tension: 0.4,
-            pointBackgroundColor: chartColors.accentLight,
-            pointBorderColor: '#fff',
-            pointBorderWidth: 2,
-            pointRadius: 4,
-            pointHoverRadius: 6,
-            yAxisID: 'y1'
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: {
-            intersect: false,
-            mode: 'index'
-          },
-          plugins: {
-            legend: {
-              position: 'top',
-              labels: {
-                color: muted,
-                font: { size: 11 },
-                usePointStyle: true,
-                pointStyle: 'circle'
-              }
-            },
-            tooltip: {
-              backgroundColor: 'rgba(15, 23, 42, 0.9)',
-              titleColor: text,
-              bodyColor: muted,
-              borderColor: chartColors.accent,
-              borderWidth: 1,
-              cornerRadius: 8,
-              padding: 12
-            }
-          },
-          scales: {
-            y: {
-              beginAtZero: true,
-              position: 'left',
-              grid: { color: chartColors.border, drawBorder: false },
-              ticks: { color: chartColors.muted, font: { size: 11 } }
-            },
-            y1: {
-              beginAtZero: true,
-              position: 'right',
-              grid: { display: false },
-              ticks: { color: chartColors.muted, font: { size: 11 } }
-            },
-            x: {
-              grid: { display: false },
-              ticks: { color: chartColors.muted, font: { size: 11 } }
-            }
-          },
-          animation: {
-            duration: 1500,
-            easing: 'easeInOutQuart'
-          }
-        }
-      });
-    }
-
-    // Utilization rate chart (radar chart)
-    const uc = document.getElementById('utilizationChart');
-    if (uc) {
-      charts.utilization = new Chart(uc, {
-        type: 'radar',
-        data: {
-          labels: ['Morning', 'Noon', 'Afternoon', 'Evening', 'Night', 'Late Night'],
-          datasets: [{
-            label: 'Current Week',
-            data: [78, 85, 82, 90, 45, 20],
-            borderColor: chartColors.accent,
-            backgroundColor: 'rgba(6,182,212,0.2)',
-            borderWidth: 2,
-            pointBackgroundColor: chartColors.accent,
-            pointBorderColor: '#fff',
-            pointBorderWidth: 2,
-            pointRadius: 4
-          }, {
-            label: 'Previous Week',
-            data: [70, 78, 75, 85, 40, 18],
-            borderColor: chartColors.accentLight,
-            backgroundColor: 'rgba(34,211,238,0.1)',
-            borderWidth: 2,
-            pointBackgroundColor: chartColors.accentLight,
-            pointBorderColor: '#fff',
-            pointBorderWidth: 2,
-            pointRadius: 4
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'top',
-              labels: {
-                color: chartColors.muted,
-                font: { size: 11 },
-                usePointStyle: true,
-                pointStyle: 'circle'
-              }
-            },
-            tooltip: {
-              backgroundColor: 'rgba(15, 23, 42, 0.9)',
-              titleColor: chartColors.text,
-              bodyColor: chartColors.muted,
-              borderColor: chartColors.accent,
-              borderWidth: 1,
-              cornerRadius: 8,
-              padding: 12
-            }
-          },
-          scales: {
-            r: {
-              beginAtZero: true,
-              max: 100,
-              grid: { color: chartColors.border },
-              angleLines: { color: chartColors.border },
-              pointLabels: { color: chartColors.muted, font: { size: 10 } },
-              ticks: { 
-                color: chartColors.muted, 
-                font: { size: 10 },
-                backdropColor: 'transparent'
-              }
-            }
-          },
-          animation: {
-            duration: 1500,
-            easing: 'easeInOutQuart'
-          }
-        }
-      });
-    }
-  }
   
   function updateCharts(metrics){
-    if (!charts.contractor || !charts.status) return;
-    
-    // Update contractor chart
-    charts.contractor.data.labels = metrics.byContractor.map(x => x.name);
-    charts.contractor.data.datasets[0].data = metrics.byContractor.map(x => x.vehicles);
-    charts.contractor.update();
-    
-    // Update status chart
-    const a = metrics.totals.active, i = metrics.totals.idle;
-    charts.status.data.datasets[0].data = [a, i];
-    charts.status.update();
-    
-    // Update performance chart with dynamic data
-    if (charts.performance) {
-      const performanceData = generatePerformanceData(metrics);
-      charts.performance.data.datasets[0].data = performanceData.collections;
-      charts.performance.data.datasets[1].data = performanceData.efficiency;
-      charts.performance.update();
-    }
-    
-    // Update utilization chart with dynamic data
-    if (charts.utilization) {
-      const utilizationData = generateUtilizationData(metrics);
-      charts.utilization.data.datasets[0].data = utilizationData.current;
-      charts.utilization.data.datasets[1].data = utilizationData.previous;
-      charts.utilization.data.datasets[1].data = utilizationData.previous;
-        charts.utilization.update();
-    }
+    // Legacy function removed
   }
   
-  // Generate performance data based on actual metrics
-  function generatePerformanceData(metrics) {
-    const collections = [12, 19, 15, 25, 22, 30, 28];
-    const efficiency = collections.map(c => 70 + Math.random() * 30);
-    return { collections, efficiency };
-  }
-  
-  // Generate utilization data based on actual metrics
-  function generateUtilizationData(metrics) {
-    const baseUtilization = [
-      Math.max(20, metrics.totals.active * 15),
-      Math.max(30, metrics.totals.active * 20),
-      Math.max(25, metrics.totals.active * 18),
-      Math.max(40, metrics.totals.active * 25),
-      Math.max(15, metrics.totals.active * 10),
-      Math.max(10, metrics.totals.active * 5)
-    ];
-    const previous = baseUtilization.map(v => Math.max(10, v - 5));
-    return {
-      current: baseUtilization,
-      previous: previous
-    };
-  }
+  // Legacy chart data generators removed
+
   
   const summaryCompanyName = document.getElementById('summaryCompanyName');
   const summaryRegisteredVehicles = document.getElementById('summaryRegisteredVehicles');
@@ -1500,6 +1416,10 @@ const charts = {};
   // Get new elements for smart bins
   const kpiTotalBins = document.getElementById('kpiTotalBins');
   const kpiCriticalBins = document.getElementById('kpiCriticalBins');
+  const kpiHighFillBins = document.getElementById('kpiHighFillBins');
+  const kpiVehiclesService = document.getElementById('kpiVehiclesService');
+  const kpiTotalVehicles = document.getElementById('kpiTotalVehicles');
+  const kpiActiveContractors = document.getElementById('kpiActiveContractors');
   const kpiPendingTasks = document.getElementById('kpiPendingTasks');
   const kpiUnreadAlerts = document.getElementById('kpiUnreadAlerts');
   const alertsContainer = document.getElementById('alerts');
@@ -1508,8 +1428,10 @@ const charts = {};
   const binStatusFilter = document.getElementById('binStatusFilter');
   const collectionTasksTable = document.getElementById('collectionTasksTable');
   const taskStatusFilter = document.getElementById('taskStatusFilter');
-  const createTaskBtn = document.getElementById('createTaskBtn');
+  const createTaskBtn = document.getElementById('addTaskBtn');
   const optimizeRouteBtn = document.getElementById('optimizeRouteBtn');
+
+
   
   // Add task button event listener
   createTaskBtn?.addEventListener('click', showTaskManage);
@@ -1531,10 +1453,18 @@ const charts = {};
 
   // Render smart bins
   function renderSmartBins(bins) {
-    const areaFilter = binAreaFilter.value;
-    const statusFilter = binStatusFilter.value;
+    if (!smartBinsContainer) {
+      console.error('[Dashboard] Smart bins container element not found');
+      return;
+    }
     
-    let filteredBins = bins;
+    const areaFilter = binAreaFilter && binAreaFilter.value ? binAreaFilter.value : '';
+    const statusFilter = binStatusFilter && binStatusFilter.value ? binStatusFilter.value : '';
+    
+    let filteredBins = bins || [];
+    console.log('[Dashboard] Rendering smart bins:', filteredBins.length, 'bins');
+    
+    // Apply filters
     if (areaFilter) {
       filteredBins = filteredBins.filter(bin => bin.area === areaFilter);
     }
@@ -1544,10 +1474,15 @@ const charts = {};
         return status.status === statusFilter;
       });
     }
+    
+    if (filteredBins.length === 0) {
+      smartBinsContainer.innerHTML = '<div class="bin-card"><div class="bin-header"><span class="bin-id">No bins available</span></div></div>';
+      return;
+    }
 
     smartBinsContainer.innerHTML = '';
     filteredBins.forEach(bin => {
-      const fillStatus = getFillLevelStatus(bin.current_fill_level);
+      const fillStatus = getFillLevelStatus(bin.current_fill_level || 0);
       const binCard = document.createElement('div');
       binCard.className = `bin-card ${fillStatus.status}`;
       
@@ -1555,27 +1490,29 @@ const charts = {};
       binCard.innerHTML = `
         ${isSelected ? '<div class="bin-checkbox">✓</div>' : '<div class="bin-checkbox" onclick="toggleBinSelection(\'' + bin.bin_id + '\', event)">✓</div>'}
         <div class="bin-header">
-          <span class="bin-id">${bin.bin_id}</span>
+          <span class="bin-id">${bin.bin_id || 'Unknown'}</span>
           <div class="bin-fill">
             <span class="bin-fill-indicator ${fillStatus.status}"></span>
-            <span>${Math.round(bin.current_fill_level)}%</span>
+            <span>${Math.round(bin.current_fill_level || 0)}%</span>
           </div>
         </div>
-        <div class="bin-location">${bin.name} - ${bin.area}</div>
+        <div class="bin-location">${bin.name || 'Unknown Location'} - ${bin.area || 'Unknown Area'}</div>
         <div class="bin-bar">
-          <div class="bin-bar-fill ${fillStatus.status}" style="width: ${bin.current_fill_level}%"></div>
+          <div class="bin-bar-fill ${fillStatus.status}" style="width: ${Math.min(bin.current_fill_level || 0, 100)}%"></div>
         </div>
         <div class="bin-meta">
-          <span>${bin.capacity_kg}kg capacity</span>
-          <span>${bin.bin_type}</span>
+          <span>${bin.capacity_kg || 0}kg capacity</span>
+          <span class="bin-type">${(bin.bin_type || 'general').toLowerCase()}</span>
         </div>
       `;
       
       binCard.addEventListener('click', (e) => {
         if (!e.target.classList.contains('bin-checkbox')) {
-          map.setView([bin.latitude, bin.longitude], 15);
-          if (binMarkers[bin.bin_id]) {
-            binMarkers[bin.bin_id].openPopup();
+          if (bin.latitude && bin.longitude) {
+            map.setView([bin.latitude, bin.longitude], 15);
+            if (binMarkers[bin.bin_id]) {
+              binMarkers[bin.bin_id].openPopup();
+            }
           }
         }
       });
@@ -1583,6 +1520,7 @@ const charts = {};
     });
     
     updateSelectedBinsDisplay();
+    updateAreaFilter(bins);
     
     // Trigger update indicator when bins are rendered
     updateLastRefreshTime();
@@ -1649,7 +1587,7 @@ const charts = {};
 
   // Render collection tasks
   function renderCollectionTasks(tasks) {
-    const statusFilter = taskStatusFilter.value;
+    const statusFilter = taskStatusFilter && taskStatusFilter.value ? taskStatusFilter.value : '';
     
     let filteredTasks = tasks;
     if (statusFilter) {
@@ -1680,7 +1618,7 @@ const charts = {};
         headers: { ...headers, 'Content-Type': 'application/json' },
         body: JSON.stringify({ acknowledged_by: 1 }) // This would be actual user ID
       });
-      loadSmartBinsData(); // Refresh data
+      refreshDashboard(); // Refresh data
     } catch (error) {
       console.error('Failed to acknowledge alert:', error);
     }
@@ -1695,209 +1633,100 @@ const charts = {};
     });
   }
 
-  // Load smart bins data
-  async function loadSmartBinsData() {
-    try {
-      const [dashboardSummary, smartBins, alerts, collectionTasks, vehicles, contractors] = await Promise.all([
-        getJson('/api/dashboard-summary'),
-        getJson('/api/smart-bins'),
-        getJson('/api/alerts'),
-        getJson('/api/collection-tasks'),
-        getJson('/api/vehicles'),
-        getJson('/api/contractors')
-      ]);
-
-      // Update KPIs
-      if (kpiTotalBins) kpiTotalBins.textContent = dashboardSummary.overview.total_bins || 0;
-      if (kpiCriticalBins) kpiCriticalBins.textContent = dashboardSummary.overview.critical_bins || 0;
-      if (kpiPendingTasks) kpiPendingTasks.textContent = dashboardSummary.overview.pending_tasks || 0;
-      if (kpiUnreadAlerts) kpiUnreadAlerts.textContent = dashboardSummary.overview.unread_alerts || 0;
-
-      // Update data lists
-      smartBinsList = smartBins;
-      alertsList = alerts;
-      collectionTasksList = collectionTasks;
-      vehiclesList = vehicles;
-      contractorsList = contractors;
-
-      // Update UI components
-      updateAreaFilter(smartBins);
-      renderSmartBins(smartBins);
-      renderAlerts(alerts);
-      renderCollectionTasks(collectionTasks);
-      updateRouteSelects();
-
-      // Add bins to map
-      smartBins.forEach(bin => upsertBinMarker(bin));
-
-      // Update new charts
-      updateAdvancedCharts(smartBins, dashboardSummary);
-
-    } catch (error) {
-      console.error('Failed to load smart bins data:', error);
-      // Fall back to demo data for smart bins
-      loadDemoSmartBinsData();
-    }
-  }
-
-  // Demo data for smart bins when API is not available
-  function loadDemoSmartBinsData() {
-    const demoDashboardSummary = {
-      overview: {
-        total_bins: 10,
-        critical_bins: 2,
-        pending_tasks: 3,
-        unread_alerts: 4
-      }
-    };
-
-    const demoSmartBins = [
-      { bin_id: 'BIN001', name: 'Gurney Plaza Entrance', latitude: 5.4284, longitude: 100.3071, area: 'Gurney Drive', capacity_kg: 150, current_fill_level: 75, bin_type: 'general' },
-      { bin_id: 'BIN002', name: 'Gurney Paragon Mall', latitude: 5.4295, longitude: 100.3068, area: 'Gurney Drive', capacity_kg: 200, current_fill_level: 45, bin_type: 'general' },
-      { bin_id: 'BIN003', name: 'Penang Times Square', latitude: 5.4218, longitude: 100.3269, area: 'George Town', capacity_kg: 120, current_fill_level: 90, bin_type: 'general' },
-      { bin_id: 'BIN004', name: 'Komtar Plaza', latitude: 5.4164, longitude: 100.3327, area: 'George Town', capacity_kg: 180, current_fill_level: 60, bin_type: 'recycling' }
-    ];
-
-    const demoAlerts = [
-      { id: 1, alert_type: 'bin_overflow', entity_type: 'bin', entity_id: 'BIN003', severity: 'critical', message: 'Bin BIN003 at Penang Times Square is 90% full', created_at: new Date().toISOString() },
-      { id: 2, alert_type: 'bin_overflow', entity_type: 'bin', entity_id: 'BIN001', severity: 'high', message: 'Bin BIN001 at Gurney Plaza Entrance is 75% full', created_at: new Date().toISOString() }
-    ];
-
-    const demoCollectionTasks = [
-      { id: 1, bin_id: 'BIN001', task_type: 'collection', status: 'pending', priority: 'high', scheduled_time: new Date().toISOString() },
-      { id: 2, bin_id: 'BIN003', task_type: 'collection', status: 'pending', priority: 'critical', scheduled_time: new Date().toISOString() }
-    ];
-
-    // Update KPIs (with null checks)
-    try {
-      if (kpiTotalBins) kpiTotalBins.textContent = demoDashboardSummary.overview.total_bins;
-      if (kpiCriticalBins) kpiCriticalBins.textContent = demoDashboardSummary.overview.critical_bins;
-      if (kpiPendingTasks) kpiPendingTasks.textContent = demoDashboardSummary.overview.pending_tasks;
-      if (kpiUnreadAlerts) kpiUnreadAlerts.textContent = demoDashboardSummary.overview.unread_alerts;
-    } catch (domError) {
-      console.warn('Failed to update KPI elements:', domError);
-    }
-
-    // Update data lists
-    smartBinsList = demoSmartBins;
-    alertsList = demoAlerts;
-    collectionTasksList = demoCollectionTasks;
-
-    // Update UI components
-    updateAreaFilter(demoSmartBins);
-    renderSmartBins(demoSmartBins);
-    renderAlerts(demoAlerts);
-    renderCollectionTasks(demoCollectionTasks);
-
-    // Add bins to map
-    demoSmartBins.forEach(bin => upsertBinMarker(bin));
-
-    // Update charts
-    updateAdvancedCharts(demoSmartBins, demoDashboardSummary);
-  }
-
-  // Setup advanced charts
+  // Initialize advanced charts
   function setupAdvancedCharts() {
-    // Fill Level Chart
-    const fillLevelCtx = document.getElementById('fillLevelChart');
-    if (fillLevelCtx) {
-      charts.fillLevel = new Chart(fillLevelCtx, {
-        type: 'doughnut',
+    const fillCtx = document.getElementById('fillLevelChart')?.getContext('2d');
+    const perfCtx = document.getElementById('collectionPerformanceChart')?.getContext('2d');
+    const wasteCtx = document.getElementById('wasteTrendsChart')?.getContext('2d');
+    const efficiencyCtx = document.getElementById('contractorEfficiencyChart')?.getContext('2d');
+
+    if (fillCtx) {
+      charts.fillLevel = new Chart(fillCtx, {
+        type: 'bar',
         data: {
-          labels: ['Normal', 'Medium', 'High', 'Critical'],
+          labels: ['Low (<25%)', 'Medium (25-50%)', 'High (50-75%)', 'Critical (>75%)'],
           datasets: [{
+            label: 'Bins by Fill Level',
             data: [0, 0, 0, 0],
             backgroundColor: ['#10b981', '#eab308', '#f59e0b', '#ef4444'],
-            borderWidth: 0
+            borderRadius: 6
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'bottom', labels: { color: chartColors.muted, font: { size: 10 } } }
-          }
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, grid: { color: chartColors.border } } }
         }
       });
     }
 
-    // Collection Performance Chart
-    const collectionPerfCtx = document.getElementById('collectionPerformanceChart');
-    if (collectionPerfCtx) {
-      charts.collectionPerformance = new Chart(collectionPerfCtx, {
+    if (perfCtx) {
+      charts.collectionPerformance = new Chart(perfCtx, {
         type: 'line',
         data: {
           labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
           datasets: [{
-            label: 'Collections',
-            data: [0, 0, 0, 0, 0, 0, 0],
+            label: 'Completed Tasks',
+            data: [12, 19, 15, 25, 22, 30, 28],
             borderColor: chartColors.accent,
-            backgroundColor: 'rgba(6, 182, 212, 0.1)',
+            tension: 0.4,
+            fill: true,
+            backgroundColor: 'rgba(6,182,212,0.1)'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, grid: { color: chartColors.border } } }
+        }
+      });
+    }
+
+    if (wasteCtx) {
+      charts.wasteTrends = new Chart(wasteCtx, {
+        type: 'line',
+        data: {
+          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+          datasets: [{
+            label: 'Waste Volume (Tons)',
+            data: [45, 52, 48, 61, 55, 67],
+            borderColor: '#8b5cf6',
             tension: 0.4
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'bottom', labels: { color: chartColors.muted, font: { size: 11 } } }
-          },
-          scales: {
-            y: { beginAtZero: true, grid: { color: chartColors.border }, ticks: { color: chartColors.muted } },
-            x: { grid: { display: false }, ticks: { color: chartColors.muted } }
-          }
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, grid: { color: chartColors.border } } }
         }
       });
     }
 
-    // Waste Trends Chart
-    const wasteTrendsCtx = document.getElementById('wasteTrendsChart');
-    if (wasteTrendsCtx) {
-      charts.wasteTrends = new Chart(wasteTrendsCtx, {
-        type: 'bar',
+    if (efficiencyCtx) {
+      charts.contractorEfficiency = new Chart(efficiencyCtx, {
+        type: 'radar',
         data: {
-          labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+          labels: ['On-time', 'Completion', 'Quality', 'Safety', 'Reporting'],
           datasets: [{
-            label: 'Waste (kg)',
-            data: [0, 0, 0, 0],
-            backgroundColor: chartColors.accent
+            label: 'Average Efficiency',
+            data: [85, 90, 78, 92, 88],
+            backgroundColor: 'rgba(6,182,212,0.2)',
+            borderColor: chartColors.accent,
+            pointBackgroundColor: chartColors.accent
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'bottom', labels: { color: chartColors.muted, font: { size: 11 } } }
-          },
-          scales: {
-            y: { beginAtZero: true, grid: { color: chartColors.border }, ticks: { color: chartColors.muted } },
-            x: { grid: { display: false }, ticks: { color: chartColors.muted } }
-          }
-        }
-      });
-    }
-
-    // Contractor Efficiency Chart
-    const contractorEffCtx = document.getElementById('contractorEfficiencyChart');
-    if (contractorEffCtx) {
-      charts.contractorEfficiency = new Chart(contractorEffCtx, {
-        type: 'radar',
-        data: {
-          labels: ['On-time', 'Efficiency', 'Completion', 'Quality', 'Safety'],
-          datasets: []
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { position: 'bottom', labels: { color: chartColors.muted, font: { size: 10 } } } },
           scales: {
             r: {
               beginAtZero: true,
               max: 100,
               grid: { color: chartColors.border },
-              angleLines: { color: chartColors.border },
-              pointLabels: { color: chartColors.muted, font: { size: 10 } },
-              ticks: { color: chartColors.muted, font: { size: 10 } }
+              angleLines: { color: chartColors.border }
             }
           }
         }
@@ -1905,67 +1734,296 @@ const charts = {};
     }
   }
 
-  // Update advanced charts
-  function updateAdvancedCharts(bins, dashboardData) {
-    if (!charts.fillLevel) return;
-
-    // Update fill level chart
-    const fillLevels = { normal: 0, medium: 0, high: 0, critical: 0 };
-    bins.forEach(bin => {
-      const status = getFillLevelStatus(bin.current_fill_level);
-      fillLevels[status.status]++;
-    });
-    charts.fillLevel.data.datasets[0].data = [
-      fillLevels.normal,
-      fillLevels.medium,
-      fillLevels.high,
-      fillLevels.critical
-    ];
-    charts.fillLevel.update();
-
-    // Update other charts with sample data
-    if (charts.collectionPerformance) {
-      charts.collectionPerformance.data.datasets[0].data = [12, 19, 15, 25, 22, 30, 28];
-      charts.collectionPerformance.update();
+  function updateAdvancedCharts(bins, summary) {
+    if (charts.fillLevel && summary && summary.bins_by_fill_level) {
+      const b = summary.bins_by_fill_level;
+      charts.fillLevel.data.datasets[0].data = [b.low, b.medium, b.high, b.critical];
+      charts.fillLevel.update();
     }
 
-    if (charts.wasteTrends) {
-      charts.wasteTrends.data.datasets[0].data = [1200, 1350, 1100, 1450];
-      charts.wasteTrends.update();
-    }
+    if (summary && summary.analytics && summary.analytics.length > 0) {
+      const dates = summary.analytics.map(a => new Date(a.metric_date).toLocaleDateString('en-MY', { weekday: 'short' }));
+      
+      if (charts.collectionPerformance) {
+        charts.collectionPerformance.data.labels = dates;
+        charts.collectionPerformance.data.datasets[0].data = summary.analytics.map(a => a.total_collections);
+        charts.collectionPerformance.update();
+      }
 
-    if (charts.contractorEfficiency) {
-      charts.contractorEfficiency.data.datasets = [
-        {
-          label: 'Contractor A',
-          data: [85, 92, 78, 88, 95],
-          borderColor: '#06b6d4',
-          backgroundColor: 'rgba(6, 182, 212, 0.2)'
-        },
-        {
-          label: 'Contractor B',
-          data: [78, 85, 92, 80, 88],
-          borderColor: '#10b981',
-          backgroundColor: 'rgba(16, 185, 129, 0.2)'
-        }
-      ];
-      charts.contractorEfficiency.update();
+      if (charts.wasteTrends) {
+        charts.wasteTrends.data.labels = dates;
+        charts.wasteTrends.data.datasets[0].data = summary.analytics.map(a => a.total_waste_kg);
+        charts.wasteTrends.update();
+      }
+
+      if (charts.contractorEfficiency) {
+        // Use the latest record for radar chart
+        const latest = summary.analytics[summary.analytics.length - 1];
+        charts.contractorEfficiency.data.datasets[0].data = [
+          latest.route_completion_rate || 85,
+          latest.vehicle_utilization_rate || 90,
+          80, // Quality (placeholder)
+          95, // Safety (placeholder)
+          88  // Reporting (placeholder)
+        ];
+        charts.contractorEfficiency.update();
+      }
+    } else {
+      // Fallback or update anyway if we want to show empty/stale data
+      if (charts.collectionPerformance) charts.collectionPerformance.update();
+      if (charts.wasteTrends) charts.wasteTrends.update();
+      if (charts.contractorEfficiency) charts.contractorEfficiency.update();
     }
   }
 
-  // Event listeners for new features
-  binAreaFilter?.addEventListener('change', () => renderSmartBins(smartBinsList));
-  binStatusFilter?.addEventListener('change', () => renderSmartBins(smartBinsList));
-  taskStatusFilter?.addEventListener('change', () => renderCollectionTasks(collectionTasksList));
+  // Real-time subscription via SSE
+  function subscribe() {
+    console.log('[Dashboard] Subscribing to real-time positions...');
+    const source = new EventSource(joinUrl(API_BASE, `/api/stream/positions?api_key=${API_KEY}`));
+    
+    source.onmessage = (event) => {
+      try {
+        const positions = JSON.parse(event.data);
+        console.log('[Dashboard] Received real-time positions:', positions.length);
+        positions.forEach(upsertMarker);
+      } catch (e) {
+        console.error('[Dashboard] SSE parse error:', e);
+      }
+    };
+
+    source.onerror = (err) => {
+      console.error('[Dashboard] SSE connection error:', err);
+      source.close();
+      // Fallback to polling via refreshDashboard already handled by setInterval
+      setStatus('Real-time stream disconnected; using polling');
+      
+      // Attempt to reconnect after 5 seconds
+      setTimeout(() => {
+        if (document.visibilityState !== 'hidden') {
+          console.log('[Dashboard] Attempting to reconnect SSE...');
+          subscribe();
+        }
+      }, 5000);
+    };
+    
+    source.onopen = () => {
+      console.log('[Dashboard] SSE connection established');
+      setStatus('Real-time updates active');
+    };
+
+    return source;
+  }
+
+  function loadDemoKPIData() {
+    console.log('[Dashboard] Loading demo KPI data');
+    
+    // Verify DOM elements exist before updating
+    console.log('[Dashboard] KPI elements check:', {
+      kpiTotalBins: !!kpiTotalBins,
+      kpiCriticalBins: !!kpiCriticalBins,
+      kpiHighFillBins: !!kpiHighFillBins,
+      kpiVehiclesService: !!kpiVehiclesService,
+      kpiTotalVehicles: !!kpiTotalVehicles,
+      kpiActiveContractors: !!kpiActiveContractors,
+      kpiPendingTasks: !!kpiPendingTasks,
+      kpiUnreadAlerts: !!kpiUnreadAlerts
+    });
+    
+    // Update KPI cards with demo values
+    const demoKPIs = {
+      total_bins: 42,
+      critical_bins: 3,
+      high_fill_bins: 5,
+      active_vehicles: 8,
+      total_vehicles: 12,
+      active_contractors: 4,
+      pending_tasks: 7,
+      unread_alerts: 2
+    };
+ 
+    console.log('[Dashboard] Updating KPIs with demo values:', demoKPIs);
+    
+    if (kpiTotalBins) {
+      kpiTotalBins.textContent = demoKPIs.total_bins;
+      console.log('[Dashboard] Updated kpiTotalBins:', kpiTotalBins.textContent);
+    }
+    if (kpiCriticalBins) {
+      kpiCriticalBins.textContent = demoKPIs.critical_bins;
+      console.log('[Dashboard] Updated kpiCriticalBins:', kpiCriticalBins.textContent);
+    }
+    if (kpiHighFillBins) {
+      kpiHighFillBins.textContent = demoKPIs.high_fill_bins;
+      console.log('[Dashboard] Updated kpiHighFillBins:', kpiHighFillBins.textContent);
+    }
+    if (kpiVehiclesService) {
+      kpiVehiclesService.textContent = demoKPIs.active_vehicles;
+      console.log('[Dashboard] Updated kpiVehiclesService:', kpiVehiclesService.textContent);
+    }
+    if (kpiTotalVehicles) {
+      kpiTotalVehicles.textContent = demoKPIs.total_vehicles;
+      console.log('[Dashboard] Updated kpiTotalVehicles:', kpiTotalVehicles.textContent);
+    }
+    if (kpiActiveContractors) {
+      kpiActiveContractors.textContent = demoKPIs.active_contractors;
+      console.log('[Dashboard] Updated kpiActiveContractors:', kpiActiveContractors.textContent);
+    }
+    if (kpiPendingTasks) {
+      kpiPendingTasks.textContent = demoKPIs.pending_tasks;
+      console.log('[Dashboard] Updated kpiPendingTasks:', kpiPendingTasks.textContent);
+    }
+    if (kpiUnreadAlerts) {
+      kpiUnreadAlerts.textContent = demoKPIs.unread_alerts;
+      console.log('[Dashboard] Updated kpiUnreadAlerts:', kpiUnreadAlerts.textContent);
+    }
+
+    // Create demo analytics for charts
+    const demoAnalytics = Array(7).fill(0).map((_, i) => {
+        const d = new Date(); d.setDate(d.getDate() - i);
+        return {
+            metric_date: d.toISOString().split('T')[0],
+            total_collections: Math.floor(Math.random() * 50) + 10,
+            total_waste_kg: Math.floor(Math.random() * 500) + 100,
+            route_completion_rate: 85 + Math.random() * 15,
+            vehicle_utilization_rate: 70 + Math.random() * 20
+        };
+    }).reverse();
+    
+    // Demo fill levels
+    const demoFillLevels = {
+        low: 12, medium: 15, high: 8, critical: 3
+    };
+    
+    // Update charts with mock summary
+    updateAdvancedCharts(smartBinsList, {
+        bins_by_fill_level: demoFillLevels,
+        analytics: demoAnalytics
+    });
+  }
+
+  function loadDemoSmartBinsData() {
+    console.log('[Dashboard] Loading demo smart bins data');
+    const demoBins = [
+      { bin_id: 'BIN001', name: 'Gurney Plaza Entrance', area: 'Georgetown', current_fill_level: 85, capacity_kg: 100, bin_type: 'General', latitude: 5.4376, longitude: 100.3098 },
+      { bin_id: 'BIN002', name: 'Queensbay Mall South', area: 'Bayan Lepas', current_fill_level: 45, capacity_kg: 100, bin_type: 'Recycle', latitude: 5.3325, longitude: 100.3067 },
+      { bin_id: 'BIN003', name: 'Penang Times Square', area: 'Georgetown', current_fill_level: 95, capacity_kg: 120, bin_type: 'General', latitude: 5.4123, longitude: 100.3254 },
+      { bin_id: 'BIN004', name: 'KOMTAR Bus Terminal', area: 'Georgetown', current_fill_level: 72, capacity_kg: 150, bin_type: 'General', latitude: 5.4140, longitude: 100.3290 },
+      { bin_id: 'BIN005', name: 'Batu Ferringhi Beach', area: 'Batu Ferringhi', current_fill_level: 38, capacity_kg: 80, bin_type: 'Recycle', latitude: 5.4710, longitude: 100.2770 }
+    ];
+    
+    console.log('[Dashboard] Rendering demo bins:', demoBins.length, 'bins');
+    smartBinsList = demoBins;
+    renderSmartBins(demoBins);
+    
+    // Add bin markers to map with delay
+    setTimeout(() => {
+      demoBins.forEach(bin => {
+        upsertBinMarker(bin);
+      });
+      console.log('[Dashboard] Added', demoBins.length, 'bin markers to map');
+    }, 1000);
+  }
+
+  function loadDemoVehiclesData() {
+    console.log('[Dashboard] Loading demo vehicles data');
+    const demoVehicles = [
+      { 
+        id: 1, vehicle_id: 'V001', plate: 'ABC 1234', registration_number: 'ABC 1234', 
+        type: 'Collection Truck', vehicle_type: 'Collection Truck', status: 'active', 
+        driver_name: 'Ahmad Hassan', fuel_level: 75, last_maintenance: '2024-12-01' 
+      },
+      { 
+        id: 2, vehicle_id: 'V002', plate: 'XYZ 5678', registration_number: 'XYZ 5678', 
+        type: 'Garbage Truck', vehicle_type: 'Garbage Truck', status: 'maintenance', 
+        driver_name: 'Siti Rahmah', fuel_level: 30, last_maintenance: '2024-12-10' 
+      },
+      { 
+        id: 3, vehicle_id: 'V003', plate: 'DEF 9012', registration_number: 'DEF 9012', 
+        type: 'Side Loader', vehicle_type: 'Side Loader', status: 'active', 
+        driver_name: 'Mohamed Razak', fuel_level: 88, last_maintenance: '2024-11-20' 
+      },
+      { 
+        id: 4, vehicle_id: 'V004', plate: 'GHI 3456', registration_number: 'GHI 3456', 
+        type: 'Front Loader', vehicle_type: 'Front Loader', status: 'active', 
+        driver_name: 'Lim Wei Chong', fuel_level: 65, last_maintenance: '2024-11-15' 
+      },
+      { 
+        id: 5, vehicle_id: 'V005', plate: 'JKL 7890', registration_number: 'JKL 7890', 
+        type: 'Compactor Truck', vehicle_type: 'Compactor Truck', status: 'active', 
+        driver_name: 'Rajesh Kumar', fuel_level: 92, last_maintenance: '2024-10-20' 
+      }
+    ];
+    
+    console.log('[Dashboard] Rendering demo vehicles:', demoVehicles.length, 'vehicles');
+    vehiclesList = demoVehicles;
+    renderVehicles(demoVehicles);
+  }
+
+  function loadDemoContractorsData() {
+    console.log('[Dashboard] Loading demo contractors data');
+    const demoContractors = [
+      { contractor_id: 'C001', name: 'CleanPenang Services', contact_person: 'Lim Wei Seng', phone: '+604-123-4567', email: 'info@cleanpenang.com', status: 'active' },
+      { contractor_id: 'C002', name: 'EcoWaste Management', contact_person: 'Sharifah Aminah', phone: '+604-234-5678', email: 'contact@ecowaste.com', status: 'active' },
+      { contractor_id: 'C003', name: 'Green Island Solutions', contact_person: 'Kumar Rajan', phone: '+604-345-6789', email: 'support@greenisland.com', status: 'inactive' }
+    ];
+    renderContractors(demoContractors);
+    contractorsList = demoContractors;
+  }
+
+  function loadDemoVehicleData() {
+    console.log('[Dashboard] Loading demo vehicle data');
+    const demoPositions = [
+      {
+        deviceId: 1,
+        latitude: 5.417, longitude: 100.329,
+        speed: 12.3, course: 90,
+        attributes: { ignition: true, batteryLevel: 88 },
+        demo: true,
+        serverTime: new Date().toISOString()
+      },
+      {
+        deviceId: 2,
+        latitude: 5.420, longitude: 100.315,
+        speed: 0.0, course: 0,
+        attributes: { ignition: false, batteryLevel: 92 },
+        demo: true,
+        serverTime: new Date().toISOString()
+      },
+      {
+        deviceId: 3,
+        latitude: 5.350, longitude: 100.300,
+        speed: 45.0, course: 180,
+        attributes: { ignition: true, batteryLevel: 75 },
+        demo: true,
+        serverTime: new Date().toISOString()
+      },
+      {
+        deviceId: 4,
+        latitude: 5.380, longitude: 100.340,
+        speed: 0.0, course: 0,
+        attributes: { ignition: false, batteryLevel: 65 },
+        demo: true,
+        serverTime: new Date().toISOString()
+      },
+      {
+        deviceId: 5,
+        latitude: 5.460, longitude: 100.280,
+        speed: 25.0, course: 270,
+        attributes: { ignition: true, batteryLevel: 82 },
+        demo: true,
+        serverTime: new Date().toISOString()
+      }
+    ];
+    
+    console.log('[Dashboard] Adding', demoPositions.length, 'demo vehicle markers');
+    demoPositions.forEach((position, index) => {
+      setTimeout(() => {
+        upsertMarker(position);
+      }, index * 500); // Stagger marker creation for visual effect
+    });
+  }
 
   // Initialize advanced charts
   setupAdvancedCharts();
-
-  // Load smart bins data
-  loadSmartBinsData();
-
-  // Auto-refresh smart bins data every 30 seconds
-  setInterval(loadSmartBinsData, 30000);
 
   // User authentication functions
   async function loadUserInfo() {
@@ -2081,7 +2139,7 @@ const charts = {};
   });
 
   mobileDeviceSelect?.addEventListener('change', () => {
-    selectedDeviceId = mobileDeviceSelect.value;
+    selectedDeviceId = mobileDeviceSelect?.value || '';
     if (deviceSelect) deviceSelect.value = selectedDeviceId;
   });
 
@@ -2093,7 +2151,7 @@ const charts = {};
     headers['x-api-key'] = API_KEY;
     if (apiEnv) apiEnv.value = API_BASE;
     if (apiKeyInput) apiKeyInput.value = API_KEY;
-    initialLoad();
+    refreshDashboard();
     mobileMenu.classList.remove('active');
     mobileMenuBtn.classList.remove('active');
   });
@@ -2157,8 +2215,8 @@ const charts = {};
 
   // Optimize route
   optimizeRouteBtn?.addEventListener('click', async () => {
-    const vehicleId = routeVehicleSelect.value;
-    const contractorId = routeContractorSelect.value;
+    const vehicleId = routeVehicleSelect?.value || '';
+    const contractorId = routeContractorSelect?.value || '';
     
     if (!vehicleId || !contractorId) {
       alert('Please select both vehicle and contractor');
@@ -2189,7 +2247,7 @@ const charts = {};
         // Clear selection and refresh data
         selectedBins.clear();
         renderSmartBins(smartBinsList);
-        loadSmartBinsData(); // Refresh to show new route and tasks
+        refreshDashboard(); // Refresh to show new route and tasks
       } else {
         alert('Route optimization failed: ' + result.error);
       }
