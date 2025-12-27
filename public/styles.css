@@ -1375,28 +1375,444 @@ img.loaded {
 /* Smart Bins Styles */
 .bin-filters { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
 .filter-select { padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 0.875rem; }
-.bins-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 6px; max-height: 200px; overflow-y: auto; }
-.bin-card { 
-  background: var(--card); 
-  border: 1px solid var(--border); 
-  border-radius: var(--radius-sm); 
-  padding: 12px; 
-  transition: all 0.2s; 
-  cursor: pointer; 
+.bins-grid { 
+  display: grid; 
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
+  gap: 12px; 
+  max-height: 600px; 
+  overflow-y: auto; 
+  padding: 4px;
+}
+
+/* Enhanced Smart Bin Cards */
+.smart-bin-card {
+  background: linear-gradient(145deg, var(--card), rgba(15, 23, 42, 0.8));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  min-height: auto;
-  overflow: visible;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  hyphens: auto;
-  flex: 1 1 auto;
+  gap: 12px;
+  min-height: 280px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  opacity: 0;
+  transform: translateY(10px);
 }
-.bin-card:hover { border-color: var(--accent); transform: translateY(-2px); }
-.bin-card.critical { border-color: #ef4444; background: linear-gradient(145deg, rgba(239,68,68,0.1), var(--card)); }
-.bin-card.high { border-color: #f59e0b; background: linear-gradient(145deg, rgba(245,158,11,0.1), var(--card)); }
-.bin-card.medium { border-color: #eab308; }
+
+.smart-bin-card.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.smart-bin-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.smart-bin-card.critical { 
+  border-color: #ef4444; 
+  border-left: 4px solid #ef4444;
+  background: linear-gradient(145deg, rgba(239, 68, 68, 0.1), rgba(15, 23, 42, 0.95));
+}
+
+.smart-bin-card.high { 
+  border-color: #f59e0b; 
+  border-left: 4px solid #f59e0b;
+  background: linear-gradient(145deg, rgba(245, 158, 11, 0.1), rgba(15, 23, 42, 0.95));
+}
+
+.smart-bin-card.medium { 
+  border-color: #eab308; 
+  border-left: 4px solid #eab308;
+  background: linear-gradient(145deg, rgba(234, 179, 8, 0.1), rgba(15, 23, 42, 0.95));
+}
+
+.smart-bin-card.normal { 
+  border-color: #10b981; 
+  border-left: 4px solid #10b981;
+  background: linear-gradient(145deg, rgba(16, 185, 129, 0.1), rgba(15, 23, 42, 0.95));
+}
+
+/* Bin Card Main Container */
+.bin-card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+/* Selection and Status */
+.bin-selection {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 10;
+}
+
+.bin-checkbox {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--muted);
+  transition: all 0.2s;
+}
+
+.bin-checkbox.checked {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.bin-checkbox:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.bin-status-indicator {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+}
+
+.status-dot.normal { background: #10b981; }
+.status-dot.medium { background: #eab308; }
+.status-dot.high { background: #f59e0b; }
+.status-dot.critical { background: #ef4444; }
+
+.status-icon {
+  width: 16px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #10b981;
+}
+
+/* Bin Identity */
+.bin-identity {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.bin-id-badge {
+  background: linear-gradient(135deg, var(--accent), var(--primary));
+  color: white;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.bin-type-icon {
+  font-size: 1.5rem;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+/* Fill Level Section */
+.bin-fill-section {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.fill-level-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.fill-percentage {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.fill-percentage.normal { color: #10b981; }
+.fill-percentage.medium { color: #eab308; }
+.fill-percentage.high { color: #f59e0b; }
+.fill-percentage.critical { color: #ef4444; }
+
+.fill-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
+}
+
+.progress-container {
+  position: relative;
+  height: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent), var(--primary));
+  border-radius: 6px;
+  transition: width 0.5s ease;
+  position: relative;
+}
+
+.progress-bar.normal { background: linear-gradient(90deg, #10b981, #059669); }
+.progress-bar.medium { background: linear-gradient(90deg, #eab308, #ca8a04); }
+.progress-bar.high { background: linear-gradient(90deg, #f59e0b, #d97706); }
+.progress-bar.critical { background: linear-gradient(90deg, #ef4444, #dc2626); }
+
+.progress-markers {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.marker {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Location Information */
+.bin-location-info {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.location-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+.location-area {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.area-icon {
+  font-size: 0.875rem;
+}
+
+.area-name {
+  font-weight: 500;
+}
+
+/* Bin Details */
+.bin-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.capacity-info {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.capacity-value {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.capacity-unit {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.capacity-label {
+  font-size: 0.625rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.7;
+}
+
+.bin-type-badge {
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.bin-type-badge.general { 
+  background: rgba(16, 185, 129, 0.1); 
+  color: #10b981;
+  border-color: #10b981;
+}
+
+.bin-type-badge.recycling { 
+  background: rgba(34, 197, 94, 0.1); 
+  color: #22c55e;
+  border-color: #22c55e;
+}
+
+.bin-type-badge.organic { 
+  background: rgba(34, 197, 94, 0.1); 
+  color: #22c55e;
+  border-color: #22c55e;
+}
+
+/* Empty State */
+.empty-state-container {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--muted);
+}
+
+.empty-state-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+  opacity: 0.6;
+}
+
+.empty-state-message h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.empty-state-message p {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+/* Responsive Design for Smart Bin Cards */
+@media (max-width: 768px) {
+  .bins-grid {
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+    padding: 2px;
+  }
+  
+  .smart-bin-card {
+    padding: 12px;
+    min-height: 260px;
+    gap: 10px;
+  }
+  
+  .bin-card-main {
+    gap: 10px;
+  }
+  
+  .fill-level-display {
+    flex-direction: column;
+    text-align: center;
+    gap: 4px;
+  }
+  
+  .fill-percentage {
+    font-size: 1.5rem;
+  }
+  
+  .bin-location-info {
+    padding: 10px;
+  }
+  
+  .location-name {
+    font-size: 0.875rem;
+    margin-bottom: 4px;
+  }
+  
+  .bin-details {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  
+  .capacity-info {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .bins-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  
+  .smart-bin-card {
+    padding: 10px;
+    min-height: 240px;
+    gap: 8px;
+  }
+  
+  .bin-id-badge {
+    font-size: 0.75rem;
+    padding: 4px 8px;
+  }
+  
+  .fill-percentage {
+    font-size: 1.25rem;
+  }
+  
+  .progress-container {
+    height: 8px;
+  }
+  
+  .location-name {
+    font-size: 0.8rem;
+  line-height: 1.2;
+  }
+  
+  .capacity-value {
+    font-size: 1rem;
+  }
+}
 .bin-header {
   display: flex;
   justify-content: space-between;

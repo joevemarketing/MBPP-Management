@@ -1629,7 +1629,7 @@ const charts = {};
     return { status: 'normal', color: '#10b981', text: 'Normal' };
   }
 
-  // Render smart bins
+  // Render smart bins with enhanced card design
   function renderSmartBins(bins) {
     if (!smartBinsContainer) {
       console.error('[Dashboard] Smart bins container element not found');
@@ -1654,33 +1654,99 @@ const charts = {};
     }
     
     if (filteredBins.length === 0) {
-      smartBinsContainer.innerHTML = '<div class="bin-card"><div class="bin-header"><span class="bin-id">No bins available</span></div></div>';
+      smartBinsContainer.innerHTML = `
+        <div class="empty-state-container">
+          <div class="empty-state-icon">🗑️</div>
+          <div class="empty-state-message">
+            <h3>No smart bins available</h3>
+            <p>Try adjusting your filters or check back later.</p>
+          </div>
+        </div>
+      `;
       return;
     }
 
     smartBinsContainer.innerHTML = '';
-    filteredBins.forEach(bin => {
+    
+    // Sort bins by area for better grouping
+    const sortedBins = [...filteredBins].sort((a, b) => {
+      const areaCompare = (a.area || '').localeCompare(b.area || '');
+      if (areaCompare !== 0) return areaCompare;
+      return (a.bin_id || '').localeCompare(b.bin_id || '');
+    });
+    
+    sortedBins.forEach((bin, index) => {
       const fillStatus = getFillLevelStatus(bin.current_fill_level || 0);
       const binCard = document.createElement('div');
-      binCard.className = `bin-card ${fillStatus.status}`;
+      binCard.className = `smart-bin-card ${fillStatus.status}`;
+      binCard.style.animationDelay = `${index * 50}ms`;
       
       const isSelected = selectedBins.has(bin.bin_id);
+      const isOperational = bin.status === 'active' || bin.status === 'operational';
+      
+      // Determine bin type icon
+      const binTypeIcon = getBinTypeIcon(bin.bin_type || 'general');
+      const fillPercentage = Math.round(bin.current_fill_level || 0);
+      
       binCard.innerHTML = `
-        ${isSelected ? '<div class="bin-checkbox">✓</div>' : '<div class="bin-checkbox" onclick="toggleBinSelection(\'' + bin.bin_id + '\', event)">✓</div>'}
-        <div class="bin-header">
-          <span class="bin-id">${bin.bin_id || 'Unknown'}</span>
-          <div class="bin-fill">
-            <span class="bin-fill-indicator ${fillStatus.status}"></span>
-            <span>${Math.round(bin.current_fill_level || 0)}%</span>
+        <div class="bin-card-main">
+          <!-- Selection Checkbox -->
+          <div class="bin-selection">
+            ${isSelected ? 
+              '<div class="bin-checkbox checked">✓</div>' : 
+              `<div class="bin-checkbox" onclick="toggleBinSelection('${bin.bin_id}', event)">✓</div>`
+            }
           </div>
-        </div>
-        <div class="bin-location">${bin.name || 'Unknown Location'} - ${bin.area || 'Unknown Area'}</div>
-        <div class="bin-bar">
-          <div class="bin-bar-fill ${fillStatus.status}" style="width: ${Math.min(bin.current_fill_level || 0, 100)}%"></div>
-        </div>
-        <div class="bin-meta">
-          <span>${bin.capacity_kg || 0}kg capacity</span>
-          <span class="bin-type">${(bin.bin_type || 'general').toLowerCase()}</span>
+          
+          <!-- Status Indicator -->
+          <div class="bin-status-indicator">
+            <div class="status-dot ${fillStatus.status}"></div>
+            <div class="status-icon">${isOperational ? '✓' : ''}</div>
+          </div>
+          
+          <!-- Bin ID and Type -->
+          <div class="bin-identity">
+            <div class="bin-id-badge">${bin.bin_id || 'Unknown'}</div>
+            <div class="bin-type-icon">${binTypeIcon}</div>
+          </div>
+          
+          <!-- Fill Level with Progress -->
+          <div class="bin-fill-section">
+            <div class="fill-level-display">
+              <div class="fill-percentage ${fillStatus.status}">${fillPercentage}%</div>
+              <div class="fill-label">${fillStatus.text}</div>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar">
+                <div class="progress-fill ${fillStatus.status}" style="width: ${Math.min(fillPercentage, 100)}%"></div>
+              </div>
+              <div class="progress-markers">
+                <div class="marker" style="left: 50%"></div>
+                <div class="marker" style="left: 80%"></div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Location Information -->
+          <div class="bin-location-info">
+            <div class="location-name">${bin.name || 'Unknown Location'}</div>
+            <div class="location-area">
+              <span class="area-icon">📍</span>
+              <span class="area-name">${bin.area || 'Unknown Area'}</span>
+            </div>
+          </div>
+          
+          <!-- Capacity and Type -->
+          <div class="bin-details">
+            <div class="capacity-info">
+              <span class="capacity-value">${bin.capacity_kg || 0}</span>
+              <span class="capacity-unit">kg</span>
+              <span class="capacity-label">Capacity</span>
+            </div>
+            <div class="bin-type-badge ${(bin.bin_type || 'general').toLowerCase()}">
+              ${(bin.bin_type || 'general').toUpperCase()}
+            </div>
+          </div>
         </div>
       `;
       
@@ -1694,7 +1760,13 @@ const charts = {};
           }
         }
       });
+      
       smartBinsContainer.appendChild(binCard);
+      
+      // Animate entrance
+      setTimeout(() => {
+        binCard.classList.add('visible');
+      }, index * 50);
     });
     
     updateSelectedBinsDisplay();
@@ -1702,6 +1774,21 @@ const charts = {};
     
     // Trigger update indicator when bins are rendered
     updateLastRefreshTime();
+    console.log(`[Dashboard] Rendered ${sortedBins.length} smart bins successfully`);
+  }
+
+  // Helper function to get bin type icon
+  function getBinTypeIcon(type) {
+    const icons = {
+      'general': '🗑️',
+      'recycling': '♻️',
+      'organic': '🌱',
+      'hazardous': '☣️',
+      'paper': '📄',
+      'plastic': '🍾',
+      'glass': '🫗'
+    };
+    return icons[type] || icons['general'];
   }
 
   function updateLastRefreshTime() {
