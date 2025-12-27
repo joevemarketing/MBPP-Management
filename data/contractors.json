@@ -1,5 +1,13 @@
 [
   {
+    "id": 1,
+    "name": "Default Contractor",
+    "kpi": {
+      "onTimeRate": 0.92,
+      "collectionEfficiency": 0.85
+    }
+  },
+  {
     "id": 10,
     "name": "Contractor A",
     "kpi": {

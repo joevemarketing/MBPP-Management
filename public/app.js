@@ -9,6 +9,45 @@
     ...(AUTH_TOKEN && { 'Authorization': `Bearer ${AUTH_TOKEN}` })
   };
 
+  // Enhanced Notifications
+  function showNotification(message, type = 'success', duration = 4000) {
+    const notification = document.getElementById('notification');
+    if (!notification) return;
+    
+    // Clear any existing timeout
+    if (notification.timeout) {
+      clearTimeout(notification.timeout);
+    }
+    
+    notification.textContent = message;
+    notification.className = `notification ${type}`;
+    notification.classList.add('show');
+    
+    // Auto-hide after duration
+    notification.timeout = setTimeout(() => {
+      notification.classList.remove('show');
+    }, duration);
+  }
+
+  // Loading Overlay Management
+  function showLoading(text = 'Processing...') {
+    const overlay = document.getElementById('loadingOverlay');
+    const textElement = overlay?.querySelector('.loading-text');
+    if (overlay) {
+      if (textElement) textElement.textContent = text;
+      overlay.classList.add('show');
+      document.body.style.overflow = 'hidden';
+    }
+  }
+
+  function hideLoading() {
+    const overlay = document.getElementById('loadingOverlay');
+    if (overlay) {
+      overlay.classList.remove('show');
+      document.body.style.overflow = '';
+    }
+  }
+
   // Draggable and Resizable Panels
   let isDragging = false;
   let isResizing = false;
@@ -774,26 +813,95 @@ const charts = {};
     const el = document.getElementById('vehicles');
     if (!el) {
       console.error('[Dashboard] Vehicles container element not found');
+      showNotification('Vehicles display area not found', 'error');
       return;
     }
+    
+    // Clear existing content with fade effect
+    el.style.opacity = '0.5';
     el.innerHTML = '';
-    vehiclesList = list || [];
+    
+    vehiclesList = Array.isArray(list) ? list : [];
     console.log('[Dashboard] Rendering vehicles:', vehiclesList.length, 'vehicles');
     
     if (vehiclesList.length === 0) {
-      el.innerHTML = '<div class="item"><span>No vehicles available</span></div>';
+      el.innerHTML = `
+        <div class="item empty-state">
+          <span>No vehicles available</span>
+          <button class="btn cyan-btn" onclick="document.getElementById('addVehicleBtn')?.click()">Add First Vehicle</button>
+        </div>
+      `;
+      el.style.opacity = '1';
       return;
     }
     
-    vehiclesList.forEach(v => {
+    // Sort vehicles by plate number for consistent ordering
+    vehiclesList.sort((a, b) => {
+      const plateA = (a.plate || a.registration_number || a.vehicle_id || '').toLowerCase();
+      const plateB = (b.plate || b.registration_number || b.vehicle_id || '').toLowerCase();
+      return plateA.localeCompare(plateB);
+    });
+    
+    // Render vehicles with enhanced display
+    vehiclesList.forEach((v, index) => {
       const div = document.createElement('div');
-      div.className = 'item';
-      // Handle different field names from API
+      div.className = 'item vehicle-item';
+      
+      // Handle different field names from API with fallbacks
       const plate = v.plate || v.registration_number || v.vehicle_id || 'Unknown';
       const type = v.type || v.vehicle_type || 'Unknown';
-      div.innerHTML = `<span>${plate}</span><span class="badge">${type}</span>`;
+      const capacity = v.capacity_kg || v.capacity || 0;
+      const contractorId = v.contractor_id || v.contractorId || 0;
+      
+      // Find contractor name if available
+      const contractor = contractorsList?.find(c => c.id === contractorId);
+      const contractorName = contractor ? contractor.name : `Contractor ${contractorId}`;
+      
+      // Add data attributes for debugging and interaction
+      div.dataset.vehicleId = v.id;
+      div.dataset.plate = plate;
+      div.dataset.type = type;
+      
+      // Enhanced HTML with more information
+      div.innerHTML = `
+        <div class="vehicle-main-info">
+          <span class="vehicle-plate">${plate}</span>
+          <span class="badge vehicle-type">${type}</span>
+        </div>
+        <div class="vehicle-details">
+          <span class="vehicle-capacity">${capacity}kg</span>
+          <span class="vehicle-contractor">${contractorName}</span>
+        </div>
+      `;
+      
+      // Add click handler for vehicle details
+      div.addEventListener('click', () => {
+        showNotification(`Vehicle: ${plate} (${type}, ${capacity}kg) - ${contractorName}`, 'info', 3000);
+      });
+      
+      // Add hover effects
+      div.addEventListener('mouseenter', () => {
+        div.style.transform = 'translateY(-2px)';
+        div.style.boxShadow = 'var(--shadow-md)';
+      });
+      
+      div.addEventListener('mouseleave', () => {
+        div.style.transform = 'translateY(0)';
+        div.style.boxShadow = 'var(--shadow-sm)';
+      });
+      
       el.appendChild(div);
+      
+      // Animate entrance
+      setTimeout(() => {
+        div.style.opacity = '1';
+        div.style.transform = 'translateY(0)';
+      }, index * 50);
     });
+    
+    // Restore opacity
+    el.style.opacity = '1';
+    console.log('[Dashboard] Successfully rendered', vehiclesList.length, 'vehicles');
   }
 
   function renderTasks(list){
@@ -983,7 +1091,7 @@ const charts = {};
     try {
       // Validate form elements exist
       if (!vPlate?.value || !vType?.value || !vContractor?.value) {
-        console.error('Missing form elements');
+        showNotification('Form elements not found. Please refresh the page.', 'error');
         return;
       }
       
@@ -994,17 +1102,26 @@ const charts = {};
       const contractorId = Number(vContractor.value || 0);
       
       if (!plate) {
-        alert('Please enter vehicle registration plate');
+        showNotification('Please enter vehicle registration plate', 'warning');
+        vPlate?.focus();
         return;
       }
       
       if (!type) {
-        alert('Please select vehicle type');
+        showNotification('Please select vehicle type', 'warning');
+        vType?.focus();
         return;
       }
       
       if (capacity <= 0) {
-        alert('Please enter valid capacity (kg)');
+        showNotification('Please enter valid capacity (kg)', 'warning');
+        vCap?.focus();
+        return;
+      }
+      
+      if (contractorId <= 0) {
+        showNotification('Please select a valid contractor', 'warning');
+        vContractor?.focus();
         return;
       }
       
@@ -1016,6 +1133,7 @@ const charts = {};
       };
       
       console.log('Saving vehicle:', payload);
+      showLoading('Adding vehicle...');
       
       const res = await fetch('/api/vehicles', { 
         method: 'POST', 
@@ -1024,10 +1142,36 @@ const charts = {};
       });
       
       if (!res.ok) {
-        console.error('Save failed:', res.status);
-        const errorMsg = await res.text();
-        console.error('Server response:', errorMsg);
-        alert(`Failed to save vehicle: ${errorMsg || 'Unknown error'} (Status: ${res.status})`);
+        let errorMessage = 'Unknown error';
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.error || errorData.message || 'Server error';
+        } catch (e) {
+          const textError = await res.text();
+          errorMessage = textError || `HTTP ${res.status}`;
+        }
+        
+        console.error('Save failed:', res.status, errorMessage);
+        hideLoading();
+        showNotification(`Failed to add vehicle: ${errorMessage}`, 'error');
+        return;
+      }
+      
+      let savedVehicle;
+      try {
+        savedVehicle = await res.json();
+        console.log('Server response:', savedVehicle);
+      } catch (e) {
+        console.error('Failed to parse server response:', e);
+        hideLoading();
+        showNotification('Invalid server response format', 'error');
+        return;
+      }
+      
+      // Validate server response
+      if (!savedVehicle || !savedVehicle.id) {
+        hideLoading();
+        showNotification('Invalid vehicle data received from server', 'error');
         return;
       }
       
@@ -1038,36 +1182,70 @@ const charts = {};
       const savedContractor = vContractor.value;
       
       hideVehicleManage();
+      hideLoading();
       
-      // Refresh data
+      // Refresh data with enhanced error handling
       try {
+        console.log('Refreshing vehicles list...');
         const vehicles = await getJson('/api/vehicles');
+        if (Array.isArray(vehicles)) {
+          console.log('Successfully refreshed vehicles:', vehicles.length);
           renderVehicles(vehicles);
-        } catch (refreshError) {
-          console.error('Failed to refresh vehicles list:', refreshError);
-          // Add the newly saved vehicle to the local list manually
-          if (vehiclesList && savedPlate && savedType && savedCap && savedContractor) {
-            const newVehicle = {
-              id: Date.now(), // Temporary ID
-              plate: savedPlate,
-              type: savedType,
-              capacity_kg: Number(savedCap),
-              contractor_id: Number(savedContractor)
-            };
+          showNotification(`Vehicle ${savedVehicle.plate || savedPlate} added successfully!`, 'success');
+        } else {
+          throw new Error('Invalid vehicles data format');
+        }
+      } catch (refreshError) {
+        console.error('Failed to refresh vehicles list:', refreshError);
+        
+        // Fallback: Add the newly saved vehicle to the local list
+        if (vehiclesList && savedPlate && savedType && savedCap && savedContractor) {
+          const newVehicle = {
+            id: savedVehicle.id || Date.now(),
+            plate: savedVehicle.plate || savedPlate,
+            type: savedVehicle.type || savedType,
+            capacity_kg: savedVehicle.capacity_kg || Number(savedCap),
+            contractor_id: savedVehicle.contractor_id || Number(savedContractor)
+          };
+          
+          // Check for duplicates
+          const exists = vehiclesList.some(v => 
+            v.plate === newVehicle.plate || 
+            (v.id === newVehicle.id && v.id !== Date.now())
+          );
+          
+          if (!exists) {
             vehiclesList.push(newVehicle);
             renderVehicles(vehiclesList);
+            showNotification(`Vehicle ${newVehicle.plate} added successfully!`, 'success');
+            console.log('Added vehicle to local list:', newVehicle);
+          } else {
+            showNotification('Vehicle already exists in the list', 'info');
           }
+        } else {
+          showNotification('Failed to update local vehicle list', 'warning');
         }
+      }
       
-      const metrics = await getJson('/api/metrics');
-      renderTotals(metrics);
-      updateCharts(metrics);
+      // Update other dashboard components
+      try {
+        const metrics = await getJson('/api/metrics');
+        if (metrics) {
+          renderTotals(metrics);
+          updateCharts(metrics);
+        }
+      } catch (metricsError) {
+        console.error('Failed to refresh metrics:', metricsError);
+        // Non-critical error, don't show notification
+      }
+      
       setUpdated();
+      console.log('Vehicle save process completed successfully');
       
-      console.log('Vehicle saved successfully');
-      alert('Vehicle added successfully!');
     } catch (error) {
-      console.error('Error saving vehicle:', error);
+      console.error('Unexpected error in vehicle save:', error);
+      hideLoading();
+      showNotification('An unexpected error occurred while adding the vehicle', 'error');
     }
   });
 
