@@ -612,7 +612,10 @@ const charts = {};
       });
       
       if (!res.ok) {
-        throw new Error('Failed to save contractor');
+        console.error('Contractor save failed:', res.status);
+        const errorMsg = await res.text();
+        console.error('Server response:', errorMsg);
+        throw new Error(`Failed to save contractor: ${errorMsg || 'Unknown error'} (Status: ${res.status})`);
       }
       
       hideContractorManage();
@@ -730,7 +733,8 @@ const charts = {};
       if (!res.ok) {
         console.error('Save failed:', res.status);
         const errorMsg = await res.text();
-        alert(`Failed to save vehicle: ${errorMsg || 'Unknown error'}`);
+        console.error('Server response:', errorMsg);
+        alert(`Failed to save vehicle: ${errorMsg || 'Unknown error'} (Status: ${res.status})`);
         return;
       }
       
@@ -851,7 +855,10 @@ const charts = {};
       });
       
       if (!res.ok) {
-        throw new Error('Failed to save task');
+        console.error('Task save failed:', res.status);
+        const errorMsg = await res.text();
+        console.error('Server response:', errorMsg);
+        throw new Error(`Failed to save task: ${errorMsg || 'Unknown error'} (Status: ${res.status})`);
       }
       
       hideTaskManage();
