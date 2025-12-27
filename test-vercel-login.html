@@ -1,19 +1,20 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Login Debug</title>
+    <title>Test Vercel Login</title>
 </head>
 <body>
-    <h2>Login Debug Test</h2>
-    <button onclick="testLogin()">Test Login</button>
+    <h2>Test Login API</h2>
+    <button onclick="testLogin()">Test Admin Login</button>
     <div id="result"></div>
     
     <script>
         async function testLogin() {
-            document.getElementById('result').innerHTML = 'Testing login...';
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Testing login...';
             
             try {
-                console.log('Sending login request...');
+                console.log('Testing login on deployed version...');
                 
                 const response = await fetch('/api/auth/login', {
                     method: 'POST',
@@ -27,18 +28,19 @@
                 });
                 
                 console.log('Response status:', response.status);
-                console.log('Response headers:', response.headers);
+                console.log('Response headers:', [...response.headers.entries()]);
                 
                 const data = await response.json();
                 console.log('Response data:', data);
                 
-                document.getElementById('result').innerHTML = `
+                resultDiv.innerHTML = `
                     <h3>Status: ${response.status}</h3>
+                    <h4>Response:</h4>
                     <pre>${JSON.stringify(data, null, 2)}</pre>
                 `;
             } catch (error) {
                 console.error('Error:', error);
-                document.getElementById('result').innerHTML = `Error: ${error.message}`;
+                resultDiv.innerHTML = `Error: ${error.message}`;
             }
         }
     </script>
