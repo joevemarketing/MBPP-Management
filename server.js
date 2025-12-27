@@ -123,7 +123,9 @@ app.post('/api/auth/logout', (req, res) => {
 
 // Check authentication for main app
 app.use((req, res, next) => {
-  if (req.path === '/login.html' || req.path === '/api/auth/login' || req.path === '/api/health') {
+  // Allow access to login, health, and static files without auth
+  const publicPaths = ['/login.html', '/api/auth/login', '/api/health', '/', '/favicon.svg', '/logo.jpeg'];
+  if (publicPaths.some(path => req.path === path || req.path.startsWith(path.replace('.html', '')))) {
     return next();
   }
   
