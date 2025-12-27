@@ -972,6 +972,44 @@ input:hover, select:hover {
     min-height: auto;
   }
   
+  /* Fix map height on mobile */
+  #map {
+    height: 40vh;
+    min-height: 300px;
+    max-height: 400px;
+  }
+  
+  /* Fix panel positioning on mobile */
+  .panel {
+    position: relative !important;
+    width: 100%;
+    height: auto;
+    min-height: auto;
+    z-index: auto !important;
+  }
+  
+  /* Ensure all grid content is visible */
+  .top-left, .top-right, .bottom-left, .bottom-center, .bottom-right {
+    position: static !important;
+    width: 100%;
+    height: auto;
+  }
+  
+  /* Ensure vehicles and contractors sections are visible */
+  .panel .list {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    opacity: 1 !important;
+  }
+  
+  .panel .actions {
+    display: flex !important;
+    width: 100% !important;
+    opacity: 1 !important;
+  }
+  
   .panel {
     position: relative;
     width: 100%;
@@ -1099,6 +1137,13 @@ input:hover, select:hover {
 }
 
 @media (max-width: 480px) {
+  /* Fix map height for small mobile */
+  #map {
+    height: 35vh;
+    min-height: 250px;
+    max-height: 350px;
+  }
+  
   .panel .kpi-cards {
     grid-template-columns: repeat(2, 1fr);
     gap: 6px;
