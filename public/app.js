@@ -618,29 +618,40 @@ const charts = {};
         throw new Error(`Failed to save contractor: ${errorMsg || 'Unknown error'} (Status: ${res.status})`);
       }
       
+      // Capture form values before hiding modal
+      const savedName = cName.value;
+      const savedRegNo = cRegNo.value;
+      const savedVehicles = cVehicles.value;
+      
       hideContractorManage();
       
       // Refresh data
       try {
         const contractors = await getJson('/api/contractors');
-        const metrics = await getJson('/api/metrics');
-        renderContractors(metrics.byContractor ?? contractors);
-      } catch (refreshError) {
-        console.error('Failed to refresh contractors list:', refreshError);
-        // Add the newly saved contractor to the local list manually
-        if (contractorsList && cName && cRegNo && cVehicles) {
-          const newContractor = {
-            id: Date.now(), // Temporary ID
-            name: cName.value,
-            registration_no: cRegNo.value,
-            vehicles: Number(cVehicles.value)
-          };
-          contractorsList.push(newContractor);
-          renderContractors(contractorsList);
+          const metrics = await getJson('/api/metrics');
+          renderContractors(metrics.byContractor ?? contractors);
+        } catch (refreshError) {
+          console.error('Failed to refresh contractors list:', refreshError);
+          // Add the newly saved contractor to the local list manually
+          if (contractorsList && savedName && savedRegNo && savedVehicles) {
+            const newContractor = {
+              id: Date.now(), // Temporary ID
+              name: savedName,
+              registration_no: savedRegNo,
+              vehicles: Number(savedVehicles)
+            };
+            contractorsList.push(newContractor);
+            renderContractors(contractorsList);
+          }
         }
-      }
-      updateCharts(metrics);
-      setUpdated();
+        
+        try {
+          updateCharts(metrics);
+        } catch (metricsError) {
+          console.warn('Failed to update charts:', metricsError);
+        }
+        
+        setUpdated();
       
       console.log('Contractor saved successfully');
       alert('Contractor added successfully!');
@@ -753,27 +764,33 @@ const charts = {};
         return;
       }
       
+      // Capture form values before hiding modal
+      const savedPlate = vPlate.value;
+      const savedType = vType.value;
+      const savedCap = vCap.value;
+      const savedContractor = vContractor.value;
+      
       hideVehicleManage();
       
       // Refresh data
       try {
         const vehicles = await getJson('/api/vehicles');
-        renderVehicles(vehicles);
-      } catch (refreshError) {
-        console.error('Failed to refresh vehicles list:', refreshError);
-        // Add the newly saved vehicle to the local list manually
-        if (vehiclesList && vPlate && vType && vCap && vContractor) {
-          const newVehicle = {
-            id: Date.now(), // Temporary ID
-            plate: vPlate.value,
-            type: vType.value,
-            capacity_kg: Number(vCap.value),
-            contractor_id: Number(vContractor.value)
-          };
-          vehiclesList.push(newVehicle);
-          renderVehicles(vehiclesList);
+          renderVehicles(vehicles);
+        } catch (refreshError) {
+          console.error('Failed to refresh vehicles list:', refreshError);
+          // Add the newly saved vehicle to the local list manually
+          if (vehiclesList && savedPlate && savedType && savedCap && savedContractor) {
+            const newVehicle = {
+              id: Date.now(), // Temporary ID
+              plate: savedPlate,
+              type: savedType,
+              capacity_kg: Number(savedCap),
+              contractor_id: Number(savedContractor)
+            };
+            vehiclesList.push(newVehicle);
+            renderVehicles(vehiclesList);
+          }
         }
-      }
       
       const metrics = await getJson('/api/metrics');
       renderTotals(metrics);
@@ -892,31 +909,38 @@ const charts = {};
         throw new Error(`Failed to save task: ${errorMsg || 'Unknown error'} (Status: ${res.status})`);
       }
       
+      // Capture form values before hiding modal
+      const savedTitle = tTitle.value;
+      const savedVehicle = tVehicle.value;
+      const savedContractor = tContractor.value;
+      const savedPriority = tPriority.value;
+      const savedScheduled = tScheduled.value;
+      
       hideTaskManage();
       
       // Refresh data
       try {
         const tasks = await getJson('/api/tasks');
-        renderTasks(tasks);
-      } catch (refreshError) {
-        console.error('Failed to refresh tasks list:', refreshError);
-        // Add the newly created task to the local list manually
-        if (tasksList && tTitle && tVehicle && tContractor) {
-          const newTask = {
-            id: Date.now(), // Temporary ID
-            title: tTitle.value,
-            vehicle_id: Number(tVehicle.value),
-            contractor_id: Number(tContractor.value),
-            priority: tPriority.value,
-            status: 'pending',
-            scheduled_time: tScheduled.value
-          };
-          tasksList.push(newTask);
-          renderTasks(tasksList);
+          renderTasks(tasks);
+        } catch (refreshError) {
+          console.error('Failed to refresh tasks list:', refreshError);
+          // Add the newly created task to the local list manually
+          if (tasksList && savedTitle && savedVehicle && savedContractor) {
+            const newTask = {
+              id: Date.now(), // Temporary ID
+              title: savedTitle,
+              vehicle_id: Number(savedVehicle),
+              contractor_id: Number(savedContractor),
+              priority: savedPriority,
+              status: 'pending',
+              scheduled_time: savedScheduled
+            };
+            tasksList.push(newTask);
+            renderTasks(tasksList);
+          }
         }
-      }
-      
-      setUpdated();
+        
+        setUpdated();
       
       console.log('Task saved successfully');
       alert('Task created successfully!');
