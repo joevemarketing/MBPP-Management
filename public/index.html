@@ -18,7 +18,16 @@
         <img src="logo.jpeg" alt="MBPP Smart Management" style="height: 60px; border-radius: var(--radius-sm);" />
         <div style="font-size: 18px; font-weight: 600; color: var(--text-primary);">MBPP Smart Waste Management</div>
       </div>
-      <div class="header-right">
+      
+      <!-- Mobile Menu Button -->
+      <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle mobile menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      
+      <!-- Desktop Header -->
+      <div class="header-right desktop-header">
         <div id="userInfo">
           <span id="userName">Loading...</span>
           <span id="userRole" class="badge"></span>
@@ -38,6 +47,50 @@
         </select>
         <input id="apiKeyInput" placeholder="API key" class="toggle" style="width:140px" />
         <button id="saveApi" class="btn">Save</button>
+      </div>
+    </div>
+    
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+      <div class="mobile-menu-header">
+        <div id="mobileUserInfo">
+          <span id="mobileUserName">Loading...</span>
+          <span id="mobileUserRole" class="badge"></span>
+        </div>
+        <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close mobile menu">×</button>
+      </div>
+      <div class="mobile-menu-content">
+        <div class="mobile-menu-section">
+          <div class="mobile-menu-item">
+            <span id="mobileStatus">Loading…</span>
+          </div>
+        </div>
+        <div class="mobile-menu-section">
+          <button id="mobileThemeToggle" class="mobile-menu-btn-item">🌙 Theme</button>
+          <button id="mobileDownloadPdf" class="mobile-menu-btn-item">📄 Download PDF</button>
+          <button id="mobileLogout" class="mobile-menu-btn-item">🚪 Logout</button>
+        </div>
+        <div class="mobile-menu-section">
+          <label class="mobile-menu-item">
+            <input type="checkbox" id="mobileShowTrails"/>
+            <span>Show Trails</span>
+          </label>
+          <label class="mobile-menu-item">
+            <input type="checkbox" id="mobileFollowDevice"/>
+            <span>Follow Device</span>
+          </label>
+        </div>
+        <div class="mobile-menu-section">
+          <select id="mobileDeviceSelect" class="mobile-select">
+            <option value="">Select Device</option>
+          </select>
+          <select id="mobileApiEnv" class="mobile-select">
+            <option value="/">Local</option>
+            <option value="https://trae05is1njt-five.vercel.app">Production</option>
+          </select>
+          <input id="mobileApiKeyInput" placeholder="API key" class="mobile-input" />
+          <button id="mobileSaveApi" class="mobile-menu-btn-item">💾 Save API</button>
+        </div>
       </div>
     </div>
   </header>

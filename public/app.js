@@ -2006,6 +2006,108 @@ const charts = {};
     window.location.href = '/login';
   });
 
+  // Mobile Menu Functionality
+  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+  const mobileMenu = document.getElementById('mobileMenu');
+  const mobileMenuClose = document.getElementById('mobileMenuClose');
+  const mobileThemeToggle = document.getElementById('mobileThemeToggle');
+  const mobileDownloadPdf = document.getElementById('mobileDownloadPdf');
+  const mobileLogout = document.getElementById('mobileLogout');
+  const mobileShowTrails = document.getElementById('mobileShowTrails');
+  const mobileFollowDevice = document.getElementById('mobileFollowDevice');
+  const mobileDeviceSelect = document.getElementById('mobileDeviceSelect');
+  const mobileApiEnv = document.getElementById('mobileApiEnv');
+  const mobileApiKeyInput = document.getElementById('mobileApiKeyInput');
+  const mobileSaveApi = document.getElementById('mobileSaveApi');
+  const mobileUserName = document.getElementById('mobileUserName');
+  const mobileUserRole = document.getElementById('mobileUserRole');
+  const mobileStatus = document.getElementById('mobileStatus');
+
+  // Toggle mobile menu
+  mobileMenuBtn?.addEventListener('click', () => {
+    mobileMenu.classList.toggle('active');
+    mobileMenuBtn.classList.toggle('active');
+    // Update mobile menu with current values
+    if (mobileUserName) mobileUserName.textContent = userName?.textContent || 'Loading...';
+    if (mobileUserRole) mobileUserRole.textContent = userRole?.textContent || '';
+    if (mobileStatus) mobileStatus.textContent = statusEl?.textContent || 'Loading…';
+    if (mobileThemeToggle) mobileThemeToggle.innerHTML = document.documentElement.classList.contains('light') ? '🌞 Theme' : '🌙 Theme';
+    if (mobileShowTrails) mobileShowTrails.checked = showTrails?.checked || false;
+    if (mobileFollowDevice) mobileFollowDevice.checked = followDevice?.checked || false;
+    if (mobileDeviceSelect) {
+      mobileDeviceSelect.innerHTML = deviceSelect?.innerHTML || '<option value="">Select Device</option>';
+      mobileDeviceSelect.value = selectedDeviceId || '';
+    }
+    if (mobileApiEnv) mobileApiEnv.value = apiEnv?.value || '/';
+    if (mobileApiKeyInput) mobileApiKeyInput.value = apiKeyInput?.value || '';
+  });
+
+  // Close mobile menu
+  mobileMenuClose?.addEventListener('click', () => {
+    mobileMenu.classList.remove('active');
+    mobileMenuBtn.classList.remove('active');
+  });
+
+  // Mobile menu functionality
+  mobileThemeToggle?.addEventListener('click', () => {
+    themeToggle?.click();
+    mobileThemeToggle.innerHTML = document.documentElement.classList.contains('light') ? '🌞 Theme' : '🌙 Theme';
+  });
+
+  mobileDownloadPdf?.addEventListener('click', () => {
+    downloadPdfBtn?.click();
+    mobileMenu.classList.remove('active');
+    mobileMenuBtn.classList.remove('active');
+  });
+
+  mobileLogout?.addEventListener('click', async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+  });
+
+  mobileShowTrails?.addEventListener('change', () => {
+    if (showTrails) showTrails.checked = mobileShowTrails.checked;
+  });
+
+  mobileFollowDevice?.addEventListener('change', () => {
+    if (followDevice) followDevice.checked = mobileFollowDevice.checked;
+  });
+
+  mobileDeviceSelect?.addEventListener('change', () => {
+    selectedDeviceId = mobileDeviceSelect.value;
+    if (deviceSelect) deviceSelect.value = selectedDeviceId;
+  });
+
+  mobileSaveApi?.addEventListener('click', () => {
+    API_BASE = mobileApiEnv?.value || '/';
+    API_KEY = mobileApiKeyInput?.value || 'dev';
+    localStorage.setItem('api_base', API_BASE);
+    localStorage.setItem('api_key', API_KEY);
+    headers['x-api-key'] = API_KEY;
+    if (apiEnv) apiEnv.value = API_BASE;
+    if (apiKeyInput) apiKeyInput.value = API_KEY;
+    initialLoad();
+    mobileMenu.classList.remove('active');
+    mobileMenuBtn.classList.remove('active');
+  });
+
+  // Close mobile menu when clicking outside
+  document.addEventListener('click', (e) => {
+    if (mobileMenu?.classList.contains('active') && 
+        !mobileMenu.contains(e.target) && 
+        !mobileMenuBtn.contains(e.target)) {
+      mobileMenu.classList.remove('active');
+      mobileMenuBtn.classList.remove('active');
+    }
+  });
+
   // Bin selection functions
   window.toggleBinSelection = function(binId, event) {
     event.stopPropagation();
