@@ -977,6 +977,8 @@ input:hover, select:hover {
     height: 40vh;
     min-height: 300px;
     max-height: 400px;
+    position: relative;
+    z-index: 1;
   }
   
   /* Fix panel positioning on mobile */
@@ -986,6 +988,8 @@ input:hover, select:hover {
     height: auto;
     min-height: auto;
     z-index: auto !important;
+    margin-bottom: 16px;
+    border-radius: var(--radius);
   }
   
   /* Ensure all grid content is visible */
@@ -993,6 +997,23 @@ input:hover, select:hover {
     position: static !important;
     width: 100%;
     height: auto;
+    margin-bottom: 16px;
+  }
+  
+  /* Specific fix for smart bins and map container */
+  .top-left {
+    z-index: 2;
+    margin-bottom: 20px;
+  }
+  
+  .top-right {
+    z-index: 1;
+    margin-bottom: 20px;
+  }
+  
+  /* Add proper spacing between grid items */
+  .main-grid {
+    gap: 20px;
   }
   
   /* Ensure vehicles and contractors sections are visible */
@@ -1002,12 +1023,40 @@ input:hover, select:hover {
     height: auto !important;
     overflow: visible !important;
     opacity: 1 !important;
+    min-height: 200px;
+    max-height: 400px;
+    overflow-y: auto;
   }
   
   .panel .actions {
     display: flex !important;
     width: 100% !important;
     opacity: 1 !important;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  /* Specific fixes for vehicles and contractors panels */
+  .bottom-left .panel,
+  .bottom-center .panel {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    transform: none !important;
+    position: relative !important;
+  }
+  
+  /* Ensure vehicle and contractor items display properly */
+  .bottom-left .panel .item,
+  .bottom-center .panel .item {
+    display: flex !important;
+    width: 100% !important;
+    padding: 12px !important;
+    margin-bottom: 8px !important;
+    min-height: 60px !important;
+    align-items: center !important;
+    background: var(--gradient-card) !important;
+    border-radius: var(--radius-sm) !important;
   }
   
   .panel {
@@ -1142,6 +1191,30 @@ input:hover, select:hover {
     height: 35vh;
     min-height: 250px;
     max-height: 350px;
+  }
+  
+  /* Enhanced vehicles and contractors for small mobile */
+  .panel .list {
+    min-height: 180px;
+    max-height: 350px;
+  }
+  
+  .bottom-left .panel .item,
+  .bottom-center .panel .item {
+    padding: 10px !important;
+    min-height: 50px !important;
+    font-size: 13px !important;
+  }
+  
+  /* Adjust panel spacing for small screens */
+  .main-grid {
+    gap: 16px;
+    padding: 12px;
+  }
+  
+  .top-left,
+  .top-right {
+    margin-bottom: 16px;
   }
   
   .panel .kpi-cards {
@@ -1285,9 +1358,17 @@ input:hover, select:hover {
     left: 0;
     width: 100%;
     height: 100vh;
-    background: var(--background);
+    background: rgba(15, 23, 42, 0.98);
+    backdrop-filter: blur(20px) saturate(180%);
     z-index: 10000;
     overflow-y: auto;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.3);
+  }
+  
+  .light .mobile-menu {
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.1);
   }
   
   .mobile-menu.active {
@@ -1358,6 +1439,94 @@ input:hover, select:hover {
     border-radius: var(--radius-sm);
     color: var(--text);
     font-size: 14px;
+  }
+}
+
+/* Extra small mobile screens (max-width: 360px) */
+@media (max-width: 360px) {
+  .header h1 {
+    font-size: 14px;
+  }
+  
+  .main-grid {
+    gap: 12px;
+    padding: 8px;
+  }
+  
+  #map {
+    height: 30vh;
+    min-height: 200px;
+    max-height: 300px;
+  }
+  
+  .panel .list {
+    min-height: 150px;
+    max-height: 300px;
+  }
+  
+  .bottom-left .panel .item,
+  .bottom-center .panel .item {
+    padding: 8px !important;
+    min-height: 45px !important;
+    font-size: 12px !important;
+  }
+  
+  .kpi-card {
+    padding: 10px 6px;
+  }
+  
+  .kpi-card h3 {
+    font-size: 9px;
+  }
+  
+  .kpi-card .value {
+    font-size: 16px;
+  }
+}
+
+/* Large tablets (min-width: 769px and max-width: 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .main-grid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "left"
+      "center" 
+      "right";
+    gap: 18px;
+    padding: 20px;
+  }
+  
+  #map {
+    height: 45vh;
+    min-height: 350px;
+    max-height: 500px;
+  }
+  
+  .panel .list {
+    min-height: 220px;
+    max-height: 450px;
+  }
+}
+
+/* Ensure consistent behavior across all mobile devices */
+@media (hover: none) and (pointer: coarse) {
+  .mobile-menu-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  .mobile-menu-btn-item {
+    min-height: 44px;
+    padding: 12px 16px;
+  }
+  
+  .item {
+    min-height: 44px;
+  }
+  
+  .btn {
+    min-height: 44px;
+    padding: 10px 16px;
   }
 }
 
