@@ -19,14 +19,7 @@
         <div style="font-size: 18px; font-weight: 600; color: var(--text-primary);">MBPP Smart Waste Management</div>
       </div>
       
-      <!-- Mobile Menu Button -->
-      <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle mobile menu">
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
-      
-      <!-- Desktop Header -->
+      <!-- Unified Desktop Header -->
       <div class="header-right desktop-header">
         <div id="userInfo">
           <span id="userName">Loading...</span>
@@ -35,15 +28,69 @@
         <div id="status">Loading…</div>
         <div id="updatedAt" style="display:none;"></div>
         <div id="selectedBinCount" style="display:none;">0</div>
-        <button id="themeToggle" class="toggle" aria-label="Toggle theme">Theme</button>
-        <button id="settingsBtn" class="btn secondary" aria-label="Settings">⚙️ Settings</button>
-        <button id="logoutBtn" class="btn secondary">Logout</button>
-        <input type="hidden" id="showTrails"/>
-        <input type="hidden" id="followDevice"/>
-        <input type="hidden" id="deviceSelect"/>
-        <input type="hidden" id="apiEnv"/>
-        <input type="hidden" id="apiKeyInput"/>
-        <input type="hidden" id="saveApi"/>
+        
+        <!-- Unified Navigation Menu -->
+        <div class="unified-nav">
+          <!-- Primary Actions -->
+          <div class="nav-group primary-actions">
+            <button id="themeToggle" class="nav-btn" aria-label="Toggle theme">
+              <span class="nav-icon">🌙</span>
+              <span class="nav-text">Theme</span>
+            </button>
+            <button id="downloadPdf" class="nav-btn" aria-label="Download PDF">
+              <span class="nav-icon">📄</span>
+              <span class="nav-text">Export</span>
+            </button>
+          </div>
+          
+          <!-- Map Controls -->
+          <div class="nav-group map-controls">
+            <label class="nav-toggle">
+              <input type="checkbox" id="showTrails"/>
+              <span class="nav-icon">🛤️</span>
+              <span class="nav-text">Trails</span>
+            </label>
+            <label class="nav-toggle">
+              <input type="checkbox" id="followDevice"/>
+              <span class="nav-icon">🎯</span>
+              <span class="nav-text">Follow</span>
+            </label>
+            <select id="deviceSelect" class="nav-select" aria-label="Device">
+              <option value="">All Devices</option>
+            </select>
+          </div>
+          
+          <!-- Settings & Actions -->
+          <div class="nav-group settings-actions">
+            <div class="nav-dropdown">
+              <button id="navSettingsBtn" class="nav-btn dropdown-toggle" aria-label="Settings and more">
+                <span class="nav-icon">⚙️</span>
+                <span class="nav-text">Settings</span>
+                <span class="dropdown-arrow">▼</span>
+              </button>
+              <div class="dropdown-menu" id="settingsDropdown">
+                <div class="dropdown-section">
+                  <h4>API Configuration</h4>
+                  <select id="apiEnv" class="dropdown-select">
+                    <option value="/">Local</option>
+                    <option value="https://trae05is1njt-five.vercel.app">Production</option>
+                  </select>
+                  <input id="apiKeyInput" placeholder="API Key" class="dropdown-input" />
+                  <button id="saveApi" class="dropdown-btn">💾 Save API</button>
+                </div>
+                <div class="dropdown-divider"></div>
+                <button id="logoutBtn" class="dropdown-btn danger">🚪 Logout</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Mobile Menu Button -->
+        <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle mobile menu">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
       </div>
     </div>
     

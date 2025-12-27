@@ -159,6 +159,234 @@ header h1 {
   align-items: center; 
   flex-wrap: wrap;
 }
+
+/* Unified Navigation System */
+.unified-nav {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.nav-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.nav-group.primary-actions {
+  order: 1;
+}
+
+.nav-group.map-controls {
+  order: 2;
+}
+
+.nav-group.settings-actions {
+  order: 3;
+}
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 200ms ease;
+  white-space: nowrap;
+  text-decoration: none;
+  min-height: 36px;
+}
+
+.nav-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+}
+
+.nav-btn:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.nav-btn.dropdown-toggle {
+  padding-right: 8px;
+}
+
+.nav-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.nav-text {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.dropdown-arrow {
+  font-size: 10px;
+  margin-left: 4px;
+  transition: transform 200ms ease;
+}
+
+.nav-dropdown:hover .dropdown-arrow {
+  transform: rotate(180deg);
+}
+
+.nav-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 200ms ease;
+  min-height: 36px;
+  margin: 0;
+}
+
+.nav-toggle:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.nav-toggle input[type="checkbox"] {
+  margin: 0;
+}
+
+.nav-select {
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 200ms ease;
+  min-height: 36px;
+}
+
+.nav-select:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Dropdown Menu */
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  margin-top: 8px;
+  min-width: 280px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(20px);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 200ms ease;
+  z-index: 1000;
+}
+
+.nav-dropdown:hover .dropdown-menu,
+.nav-dropdown:focus-within .dropdown-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.dropdown-section {
+  padding: 16px;
+}
+
+.dropdown-section h4 {
+  margin: 0 0 12px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dropdown-select {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.dropdown-input {
+  width: 100%;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 13px;
+}
+
+.dropdown-btn {
+  width: 100%;
+  padding: 10px 12px;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.dropdown-btn:hover {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+}
+
+.dropdown-btn.danger {
+  background: var(--error);
+  border-color: var(--error);
+}
+
+.dropdown-btn.danger:hover {
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0;
+}
+
+.nav-dropdown {
+  position: relative;
+}
 .user-info { 
   display: flex; 
   flex-direction: column; 
@@ -1064,6 +1292,52 @@ input:hover, select:hover {
     gap: 24px;
     padding: 24px;
   }
+  
+  /* Responsive Navigation */
+  .unified-nav {
+    gap: 16px;
+  }
+  
+  .nav-group {
+    padding: 0 8px;
+  }
+  
+  .nav-text {
+    display: none;
+  }
+  
+  .nav-btn, .nav-toggle {
+    padding: 8px;
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1199px) {
+  /* Compact Navigation for smaller desktops */
+  .unified-nav {
+    gap: 12px;
+  }
+  
+  .nav-group {
+    padding: 0 6px;
+    gap: 6px;
+  }
+  
+  .nav-text {
+    display: none;
+  }
+  
+  .nav-btn, .nav-toggle {
+    padding: 6px 8px;
+    min-height: 32px;
+  }
+  
+  .nav-icon {
+    font-size: 13px;
+  }
+  
+  .dropdown-menu {
+    min-width: 240px;
+  }
 }
 
 /* Mobile Responsive Styles */
@@ -1810,6 +2084,52 @@ input:focus {
   
   .bins-grid {
     -webkit-transform: translateZ(0);
+  }
+  
+  /* Safari navigation fixes */
+  .nav-dropdown {
+    -webkit-transform: translateZ(0);
+  }
+  
+  .dropdown-menu {
+    -webkit-transform: translateZ(0);
+    -webkit-backface-visibility: hidden;
+  }
+  
+  .nav-btn, .nav-toggle {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* Firefox specific fixes */
+@supports (-moz-appearance: none) {
+  .nav-select {
+    -moz-appearance: none;
+    background-image: none;
+  }
+  
+  .dropdown-menu {
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent) transparent;
+  }
+}
+
+/* Edge specific fixes */
+@supports (-ms-ime-align: auto) {
+  .nav-dropdown:hover .dropdown-menu {
+    -ms-transform: translateY(0);
+  }
+}
+
+/* High DPI navigation optimization */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .nav-icon {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  .nav-btn, .nav-toggle {
+    -webkit-font-smoothing: antialiased;
   }
 }
 
