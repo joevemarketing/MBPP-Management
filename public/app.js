@@ -1,7 +1,7 @@
 (function(){
   const CONFIG = window.APP_CONFIG || {};
   let API_BASE = localStorage.getItem('api_base') || (CONFIG.apiBase || '/');
-  let API_KEY = localStorage.getItem('api_key') || (CONFIG.defaultApiKey || 'dev');
+  let API_KEY = localStorage.getItem('api_key') || (CONFIG.defaultApiKey || 'dev-key-12345');
   let AUTH_TOKEN = localStorage.getItem('authToken') || CONFIG.authToken;
   
   const headers = { 
@@ -281,8 +281,6 @@
   const vehicleFilter = document.getElementById('vehicleFilter');
   const addContractorBtn = document.getElementById('addContractorBtn');
   const contractorManageModal = document.getElementById('contractorModal');
-  const contractorManageClose = document.getElementById('contractorManageClose');
-  const contractorManageSave = document.getElementById('contractorManageSave');
   const cName = document.getElementById('cName');
   const cRegNo = document.getElementById('cRegNo');
   const addVehicleBtn = document.getElementById('addVehicleBtn');
@@ -329,7 +327,7 @@
   if (apiKeyInput) apiKeyInput.value = API_KEY;
   saveApi?.addEventListener('click', () => {
     API_BASE = apiEnv?.value || '/';
-    API_KEY = apiKeyInput?.value || 'dev';
+    API_KEY = apiKeyInput?.value || 'dev-key-12345';
     localStorage.setItem('api_base', API_BASE);
     localStorage.setItem('api_key', API_KEY);
     headers['x-api-key'] = API_KEY;
@@ -590,12 +588,34 @@
     
     return icon;
   }
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
-    attribution: '&copy; OpenStreetMap',
-    errorTileUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
-    crossOrigin: true
-  }).addTo(map);
+    attribution: '&copy; OpenStreetMap contributors',
+    crossOrigin: true,
+    subdomains: ['a','b','c']
+  });
+  osmLayer.on('tileerror', () => {
+    if (!window.__tileFallbackAdded) {
+      window.__tileFallbackAdded = true;
+      const fallback = L.gridLayer({ tileSize: 256 });
+      fallback.createTile = function(coords){
+        const tile = document.createElement('canvas');
+        tile.width = tile.height = 256;
+        const ctx = tile.getContext('2d');
+        ctx.fillStyle = '#0b1220';
+        ctx.fillRect(0,0,256,256);
+        ctx.fillStyle = '#3b82f6';
+        ctx.font = '12px Inter, system-ui, sans-serif';
+        ctx.fillText('Map unavailable', 10, 20);
+        ctx.fillStyle = '#64748b';
+        ctx.fillText(`z:${coords.z} x:${coords.x} y:${coords.y}`, 10, 36);
+        return tile;
+      };
+      fallback.addTo(map);
+      showNotification('Map tiles blocked; using offline fallback', 'warn');
+    }
+  });
+  osmLayer.addTo(map);
 
   // Add vehicle legend to map
   function createVehicleLegend() {
@@ -798,28 +818,91 @@ const charts = {};
   }
   function renderContractors(list){
     const el = document.getElementById('contractors');
+    if (!el) return;
+    el.setAttribute('aria-busy', 'true');
     el.innerHTML = '';
-    contractorsList = list;
-    list.forEach(c => {
-      const div = document.createElement('div');
-      div.className = 'item';
-      div.innerHTML = `<span>${c.name}</span><span class="badge">${c.vehicles || 0} vehicles</span>`;
-      div.dataset.contractorId = c.contractorId ?? c.id;
-      div.addEventListener('click', () => showContractorSettings(div.dataset.contractorId));
-      el.appendChild(div);
+    contractorsList = Array.isArray(list) ? list : [];
+
+    const search = (document.getElementById('contractorSearch')?.value || '').toLowerCase();
+    const statusFilter = document.getElementById('contractorStatusFilter')?.value || '';
+    const sort = document.getElementById('contractorSort')?.value || 'name_asc';
+
+    let result = contractorsList.filter(c => {
+      const matchesText = !search || (c.name || '').toLowerCase().includes(search);
+      const matchesStatus = !statusFilter || (c.status || 'active') === statusFilter;
+      return matchesText && matchesStatus;
     });
-  }
-  function renderVehicles(list){
-    const el = document.getElementById('vehicles');
-    if (!el) {
-      console.error('[Dashboard] Vehicles container element not found');
-      showNotification('Vehicles display area not found', 'error');
+
+    result.sort((a, b) => {
+      switch (sort) {
+        case 'name_desc':
+          return (b.name || '').localeCompare(a.name || '');
+        case 'status':
+          return (a.status || '').localeCompare(b.status || '');
+        case 'vehicles_desc':
+          return (b.vehicles || 0) - (a.vehicles || 0);
+        case 'vehicles_asc':
+          return (a.vehicles || 0) - (b.vehicles || 0);
+        case 'name_asc':
+        default:
+          return (a.name || '').localeCompare(b.name || '');
+      }
+    });
+
+    if (result.length === 0) {
+      el.innerHTML = `<div class="item empty-state"><span>No contractors match current filters</span></div>`;
+      el.setAttribute('aria-busy', 'false');
       return;
     }
-    
-    // Clear existing content with fade effect
-    el.style.opacity = '0.5';
-    el.innerHTML = '';
+
+    result.forEach(c => {
+      const card = document.createElement('div');
+      card.className = 'contractor-card';
+      card.setAttribute('role', 'listitem');
+      card.dataset.contractorId = c.contractorId ?? c.id;
+
+      const status = (c.status || 'active').toLowerCase();
+      const vehiclesCount = c.vehicles || c.vehicles_count || 0;
+      const areas = Array.isArray(c.service_areas) ? c.service_areas.join(', ') : '';
+
+      card.innerHTML = `
+        <div class="contractor-main">
+          <div class="card-icon" aria-hidden="true">🏢</div>
+          <div class="contractor-name">${c.name || 'Unknown Contractor'}</div>
+          <div class="contractor-meta">
+            <span>${vehiclesCount} vehicles</span>
+            ${areas ? `<span>${areas}</span>` : ''}
+          </div>
+        </div>
+        <div class="contractor-actions">
+          <span class="status-badge ${status}" aria-label="Status: ${status}">${status}</span>
+          <button class="btn secondary-btn edit-btn" aria-label="Edit contractor" onclick="showContractorSettings(${card.dataset.contractorId})">Edit</button>
+        </div>
+      `;
+
+      card.addEventListener('click', (e) => {
+        if (e.target.tagName.toLowerCase() !== 'button') {
+          showContractorSettings(card.dataset.contractorId);
+        }
+      });
+
+      el.appendChild(card);
+    });
+
+    el.setAttribute('aria-busy', 'false');
+  }
+function renderVehicles(list){
+  const el = document.getElementById('vehicles');
+  if (!el) {
+    console.error('[Dashboard] Vehicles container element not found');
+    showNotification('Vehicles display area not found', 'error');
+    return;
+  }
+  
+  // Clear existing content with fade effect
+  el.style.opacity = '0.5';
+  el.setAttribute('aria-busy', 'true');
+  el.innerHTML = '';
     
     vehiclesList = Array.isArray(list) ? list : [];
     console.log('[Dashboard] Rendering vehicles:', vehiclesList.length, 'vehicles');
@@ -842,11 +925,12 @@ const charts = {};
       return plateA.localeCompare(plateB);
     });
     
-    // Render vehicles with enhanced display
-    vehiclesList.forEach((v, index) => {
-      const div = document.createElement('div');
-      div.className = 'item vehicle-item';
-      
+  // Render vehicles with enhanced display
+  vehiclesList.forEach((v, index) => {
+    const div = document.createElement('div');
+    div.className = 'item vehicle-item';
+    div.setAttribute('role', 'listitem');
+    
       // Handle different field names from API with fallbacks
       const plate = v.plate || v.registration_number || v.vehicle_id || 'Unknown';
       const type = v.type || v.vehicle_type || 'Unknown';
@@ -890,19 +974,39 @@ const charts = {};
         div.style.boxShadow = 'var(--shadow-sm)';
       });
       
-      el.appendChild(div);
-      
-      // Animate entrance
-      setTimeout(() => {
-        div.style.opacity = '1';
-        div.style.transform = 'translateY(0)';
-      }, index * 50);
-    });
+    el.appendChild(div);
     
-    // Restore opacity
-    el.style.opacity = '1';
-    console.log('[Dashboard] Successfully rendered', vehiclesList.length, 'vehicles');
-  }
+    // Animate entrance
+    setTimeout(() => {
+      div.style.opacity = '1';
+      div.style.transform = 'translateY(0)';
+    }, index * 50);
+  });
+  
+  // Restore opacity
+  el.style.opacity = '1';
+  el.setAttribute('aria-busy', 'false');
+  console.log('[Dashboard] Successfully rendered', vehiclesList.length, 'vehicles');
+
+  // Visual confirmation for newly added vehicle
+  try {
+    const addedId = window.lastAddedVehicleId;
+    const addedPlate = window.lastAddedVehiclePlate;
+    if (addedId || addedPlate) {
+      const addedEl = Array.from(el.querySelectorAll('.vehicle-item')).find(node => {
+        const idMatch = node.dataset.vehicleId && Number(node.dataset.vehicleId) === Number(addedId);
+        const plateMatch = node.dataset.plate && node.dataset.plate === addedPlate;
+        return idMatch || plateMatch;
+      });
+      if (addedEl) {
+        addedEl.classList.add('added-highlight');
+        addedEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      window.lastAddedVehicleId = null;
+      window.lastAddedVehiclePlate = null;
+    }
+  } catch {}
+}
 
   function renderTasks(list){
     tasksList = list || [];
@@ -930,7 +1034,7 @@ const charts = {};
   function hideModal(){ contractorModal.classList.remove('show'); modalBackdrop.classList.remove('show'); document.body.classList.remove('modal-open'); }
   modalClose?.addEventListener('click', hideModal);
   modalOk?.addEventListener('click', hideModal);
-  modalBackdrop.addEventListener('click', () => {
+  modalBackdrop?.addEventListener('click', () => {
     hideModal();
     hideContractorManage();
     hideVehicleManage();
@@ -1218,6 +1322,11 @@ const charts = {};
   
   // Initialize tabs
   initContractorSettingsTabs();
+  // Contractors controls listeners
+  ['contractorSearch','contractorStatusFilter','contractorSort'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', () => renderContractors(contractorsList));
+    document.getElementById(id)?.addEventListener('change', () => renderContractors(contractorsList));
+  });
   
   // Update existing contractor list items to be clickable
   function makeContractorsClickable() {
@@ -1236,92 +1345,6 @@ const charts = {};
   // Legacy functions for backward compatibility
   function showContractorManage(){ showContractorSettings(); }
   function hideContractorManage(){ hideContractorSettings(); }
-  const contractorManageClose = document.getElementById('contractorSettingsClose');
-  const contractorManageSave = document.getElementById('contractorSettingsSave');
-  contractorManageSave?.addEventListener('click', async () => {
-    try {
-      // Validate form elements exist
-      if (!cName?.value || !cRegNo?.value) {
-        console.error('Missing form elements');
-        return;
-      }
-      
-      // Validate form data
-      const name = cName.value.trim();
-      const regNo = cRegNo.value.trim();
-      
-      if (!name) {
-        alert('Please enter contractor name');
-        return;
-      }
-      
-      if (!regNo) {
-        alert('Please enter company registration number');
-        return;
-      }
-      
-      const payload = {
-        name: name,
-        reg_no: regNo
-      };
-      
-      console.log('Saving contractor:', payload);
-      
-      const res = await fetch('/api/contractors', { 
-        method: 'POST', 
-        headers: { ...headers, 'Content-Type': 'application/json' }, 
-        body: JSON.stringify(payload) 
-      });
-      
-      if (!res.ok) {
-        console.error('Contractor save failed:', res.status);
-        const errorMsg = await res.text();
-        console.error('Server response:', errorMsg);
-        throw new Error(`Failed to save contractor: ${errorMsg || 'Unknown error'} (Status: ${res.status})`);
-      }
-      
-      // Capture form values before hiding modal
-      const savedName = cName.value;
-      const savedRegNo = cRegNo.value;
-      const savedVehicles = cVehicles.value;
-      
-      hideContractorManage();
-      
-      // Refresh data
-      try {
-        const contractors = await getJson('/api/contractors');
-          const metrics = await getJson('/api/metrics');
-          renderContractors(metrics.byContractor ?? contractors);
-        } catch (refreshError) {
-          console.error('Failed to refresh contractors list:', refreshError);
-          // Add the newly saved contractor to the local list manually
-          if (contractorsList && savedName && savedRegNo && savedVehicles) {
-            const newContractor = {
-              id: Date.now(), // Temporary ID
-              name: savedName,
-              registration_no: savedRegNo,
-              vehicles: Number(savedVehicles)
-            };
-            contractorsList.push(newContractor);
-            renderContractors(contractorsList);
-          }
-        }
-        
-        try {
-          updateCharts(metrics);
-        } catch (metricsError) {
-          console.warn('Failed to update charts:', metricsError);
-        }
-        
-        setUpdated();
-      
-      console.log('Contractor saved successfully');
-      alert('Contractor added successfully!');
-    } catch (error) {
-      console.error('Error saving contractor:', error);
-      alert('Error adding contractor. Please try again.');
-    }
-  });
 
   // Enhanced Vehicle Management Functions
   function showVehicleManage(vehicleId = null, contractorId = null) {
@@ -1455,6 +1478,9 @@ const charts = {};
       hideLoading();
       hideVehicleManage();
       showNotification(isEdit ? 'Vehicle updated successfully' : 'Vehicle created successfully', 'success');
+      // Store identifiers for highlight after render
+      window.lastAddedVehicleId = data?.id || null;
+      window.lastAddedVehiclePlate = vehicleData.plate;
       
       // Refresh vehicles list
       refreshVehiclesList();
@@ -1724,13 +1750,15 @@ const charts = {};
       
       hideVehicleManage();
       hideLoading();
-      
+
       // Refresh data with enhanced error handling
       try {
         console.log('Refreshing vehicles list...');
         const vehicles = await getJson('/api/vehicles');
         if (Array.isArray(vehicles)) {
           console.log('Successfully refreshed vehicles:', vehicles.length);
+          window.lastAddedVehicleId = savedVehicle.id;
+          window.lastAddedVehiclePlate = savedVehicle.plate || savedPlate;
           renderVehicles(vehicles);
           showNotification(`Vehicle ${savedVehicle.plate || savedPlate} added successfully!`, 'success');
         } else {
@@ -1757,6 +1785,8 @@ const charts = {};
           
           if (!exists) {
             vehiclesList.push(newVehicle);
+            window.lastAddedVehicleId = newVehicle.id;
+            window.lastAddedVehiclePlate = newVehicle.plate;
             renderVehicles(vehiclesList);
             showNotification(`Vehicle ${newVehicle.plate} added successfully!`, 'success');
             console.log('Added vehicle to local list:', newVehicle);
@@ -1782,7 +1812,7 @@ const charts = {};
       
       setUpdated();
       console.log('Vehicle save process completed successfully');
-      
+
     } catch (error) {
       console.error('Unexpected error in vehicle save:', error);
       hideLoading();
@@ -1983,6 +2013,12 @@ const charts = {};
       console.error('[Dashboard] Critical: smartBinsContainer not found, skipping refresh');
       return false;
     }
+
+    // Set loading state for smart bins list
+    try {
+      smartBinsContainerCheck.setAttribute('aria-busy', 'true');
+      smartBinsContainerCheck.innerHTML = '<div class="item">Loading bins...</div>';
+    } catch {}
     
     try {
       // Step 1: Fetch all data sources in parallel
@@ -2076,12 +2112,7 @@ const charts = {};
         loadDemoVehicleData();
       }
       
-      if (bins && bins.length > 0) {
-        console.log('[Dashboard] Processing', bins.length, 'bin markers');
-        bins.forEach(upsertBinMarker);
-      } else {
-        console.log('[Dashboard] No bins from API for markers');
-      }
+      // Bin markers are synchronized within renderSmartBins based on current filters
 
       // Step 6: Update Charts
       updateAdvancedCharts(bins, summary);
@@ -2147,6 +2178,7 @@ const charts = {};
   const smartBinsContainer = document.getElementById('smartBins');
   const binAreaFilter = document.getElementById('binAreaFilter');
   const binStatusFilter = document.getElementById('binStatusFilter');
+  const binTypeFilter = document.getElementById('binTypeFilter');
   const collectionTasksTable = document.getElementById('collectionTasksTable');
   const taskStatusFilter = document.getElementById('taskStatusFilter');
   const createTaskBtn = document.getElementById('addTaskBtn');
@@ -2179,42 +2211,34 @@ const charts = {};
       return;
     }
     
+    smartBinsContainer.setAttribute('aria-busy', 'true');
     const areaFilter = binAreaFilter && binAreaFilter.value ? binAreaFilter.value : '';
     const statusFilter = binStatusFilter && binStatusFilter.value ? binStatusFilter.value : '';
-    
-    let filteredBins = bins || [];
+    const typeFilter = binTypeFilter && binTypeFilter.value ? binTypeFilter.value : '';
+
+    let filteredBins = applyBinFilters(bins || [], { area: areaFilter, status: statusFilter, type: typeFilter });
     console.log('[Dashboard] Rendering smart bins:', {
       totalBins: bins.length,
-      filteredBins: 'will be calculated',
+      filteredBins: filteredBins.length,
       areaFilter: areaFilter || 'none',
       statusFilter: statusFilter || 'none',
+      typeFilter: typeFilter || 'none',
       sourceDataAvailable: !!bins && bins.length > 0
     });
-    
-    // Apply filters
-    if (areaFilter) {
-      filteredBins = filteredBins.filter(bin => bin.area === areaFilter);
-    }
-    if (statusFilter) {
-      filteredBins = filteredBins.filter(bin => {
-        const status = getFillLevelStatus(bin.current_fill_level);
-        return status.status === statusFilter;
-      });
-    }
     
     console.log('[Dashboard] Filter results:', {
       beforeFilter: bins.length,
       afterFilter: filteredBins.length,
-      activeFilters: { area: areaFilter, status: statusFilter }
+      activeFilters: { area: areaFilter, status: statusFilter, type: typeFilter }
     });
     
     if (filteredBins.length === 0) {
-      const hasActiveFilters = areaFilter || statusFilter;
+      const hasActiveFilters = areaFilter || statusFilter || typeFilter;
       const emptyMessage = hasActiveFilters 
         ? 'No smart bins match your current filters'
         : 'No smart bins available';
       const emptySubtext = hasActiveFilters
-        ? 'Try adjusting your filter settings'
+        ? `Try adjusting your filter settings (${bins.length} total bins)`
         : 'Check connection or try refreshing the dashboard';
       
       smartBinsContainer.innerHTML = `
@@ -2223,10 +2247,14 @@ const charts = {};
           <div class="empty-state-message">
             <h3>${emptyMessage}</h3>
             <p>${emptySubtext}</p>
-            ${areaFilter || statusFilter ? '<button class="btn cyan-btn" onclick="clearFilters()">Clear Filters</button>' : ''}
+            ${hasActiveFilters ? '<button class="btn cyan-btn" onclick="clearFilters()">Clear Filters</button>' : ''}
           </div>
         </div>
       `;
+
+      // Ensure map markers reflect filtered (none) result
+      clearBinMarkers();
+      smartBinsContainer.setAttribute('aria-busy', 'false');
       return;
     }
 
@@ -2242,7 +2270,8 @@ const charts = {};
     sortedBins.forEach((bin, index) => {
       const fillStatus = getFillLevelStatus(bin.current_fill_level || 0);
       const binCard = document.createElement('div');
-      binCard.className = `smart-bin-card ${fillStatus.status}`;
+      binCard.className = `smart-bin-card bin-card ${fillStatus.status}`;
+      binCard.setAttribute('role', 'listitem');
       binCard.style.animationDelay = `${index * 50}ms`;
       
       const isSelected = selectedBins.has(bin.bin_id);
@@ -2333,12 +2362,35 @@ const charts = {};
       }, index * 50);
     });
     
+    // Sync map markers with filtered results
+    clearBinMarkers();
+    sortedBins.forEach(upsertBinMarker);
+
     updateSelectedBinsDisplay();
     updateAreaFilter(bins);
+    updateTypeFilter(bins);
+    updateStatusFilter();
     
     // Trigger update indicator when bins are rendered
     updateLastRefreshTime();
+    smartBinsContainer.setAttribute('aria-busy', 'false');
     console.log(`[Dashboard] Rendered ${sortedBins.length} smart bins successfully`);
+  }
+
+  // Apply filters helper to keep map and list in sync
+  function applyBinFilters(bins, filters) {
+    let result = [...bins];
+    const { area, status, type } = filters || {};
+    if (area) {
+      result = result.filter(bin => bin.area === area);
+    }
+    if (status) {
+      result = result.filter(bin => getFillLevelStatus(bin.current_fill_level).status === status);
+    }
+    if (type) {
+      result = result.filter(bin => (bin.bin_type || '').toLowerCase() === type.toLowerCase());
+    }
+    return result;
   }
 
   // Helper function to get bin type icon
@@ -2359,12 +2411,15 @@ const charts = {};
   function clearFilters() {
     if (binAreaFilter) binAreaFilter.value = '';
     if (binStatusFilter) binStatusFilter.value = '';
+    if (binTypeFilter) binTypeFilter.value = '';
     
     // Re-render bins with cleared filters
     renderSmartBins(smartBinsList);
     
     // Update area filter options
     updateAreaFilter(smartBinsList);
+    updateTypeFilter(smartBinsList);
+    updateStatusFilter();
     
     showNotification('Filters cleared successfully', 'success', 2000);
   }
@@ -2485,6 +2540,38 @@ const charts = {};
       binAreaFilter.innerHTML += `<option value="${area}">${area}</option>`;
     });
   }
+
+  // Update type filter options
+  function updateTypeFilter(bins) {
+    if (!binTypeFilter) return;
+    const types = [...new Set(bins.map(bin => (bin.bin_type || 'general')))].sort();
+    binTypeFilter.innerHTML = '<option value="">All Types</option>';
+    types.forEach(type => {
+      binTypeFilter.innerHTML += `<option value="${type.toLowerCase()}">${type}</option>`;
+    });
+  }
+
+  // Update status filter options (static based on thresholds)
+  function updateStatusFilter() {
+    if (!binStatusFilter) return;
+    const options = [
+      { value: '', label: 'All Status' },
+      { value: 'normal', label: 'Normal' },
+      { value: 'medium', label: 'Medium' },
+      { value: 'high', label: 'High' },
+      { value: 'critical', label: 'Critical' }
+    ];
+    binStatusFilter.innerHTML = options
+      .map(opt => `<option value="${opt.value}">${opt.label}</option>`)
+      .join('');
+  }
+
+  // Bind filter change events to re-render and sync map
+  [binAreaFilter, binStatusFilter, binTypeFilter].forEach(el => {
+    el?.addEventListener('change', () => {
+      renderSmartBins(smartBinsList);
+    });
+  });
 
   // Initialize advanced charts
   function setupAdvancedCharts() {
@@ -2883,24 +2970,30 @@ const charts = {};
     try {
       const user = JSON.parse(localStorage.getItem('user') || 'null');
       if (user) {
-        userName.textContent = user.name;
-        userRole.textContent = user.role;
-        userRole.className = `badge ${user.role}`;
+        if (userName) userName.textContent = user.name;
+        if (userRole) {
+          userRole.textContent = user.role;
+          userRole.className = `badge ${user.role}`;
+        }
       } else {
         // Try to fetch user info from server
         const response = await getJson('/api/auth/me');
         if (response.user) {
-          userName.textContent = response.user.name;
-          userRole.textContent = response.user.role;
-          userRole.className = `badge ${response.user.role}`;
+          if (userName) userName.textContent = response.user.name;
+          if (userRole) {
+            userRole.textContent = response.user.role;
+            userRole.className = `badge ${response.user.role}`;
+          }
           localStorage.setItem('user', JSON.stringify(response.user));
         }
       }
     } catch (error) {
       console.error('Failed to load user info:', error);
-      userName.textContent = 'Demo User';
-      userRole.textContent = 'Administrator';
-      userRole.className = 'badge admin';
+      if (userName) userName.textContent = 'Demo User';
+      if (userRole) {
+        userRole.textContent = 'Administrator';
+        userRole.className = 'badge admin';
+      }
     }
   }
 
@@ -2998,7 +3091,7 @@ const charts = {};
 
   mobileSaveApi?.addEventListener('click', () => {
     API_BASE = mobileApiEnv?.value || '/';
-    API_KEY = mobileApiKeyInput?.value || 'dev';
+    API_KEY = mobileApiKeyInput?.value || 'dev-key-12345';
     localStorage.setItem('api_base', API_BASE);
     localStorage.setItem('api_key', API_KEY);
     headers['x-api-key'] = API_KEY;
@@ -3205,6 +3298,11 @@ const charts = {};
   // Helper functions for data refresh
   function refreshContractorsList() {
     try {
+      const el = document.getElementById('contractors');
+      if (el) {
+        el.setAttribute('aria-busy', 'true');
+        el.innerHTML = '<div class="item">Loading contractors...</div>';
+      }
       fetch('/api/contractors', { headers })
         .then(res => res.json())
         .then(contractors => {
@@ -3213,6 +3311,10 @@ const charts = {};
         })
         .catch(error => {
           console.error('Failed to refresh contractors list:', error);
+          if (el) {
+            el.innerHTML = '<div class="item empty-state">Failed to load contractors</div>';
+            el.setAttribute('aria-busy', 'false');
+          }
         });
     } catch (error) {
       console.error('Failed to refresh contractors list:', error);

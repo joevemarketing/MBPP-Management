@@ -25,18 +25,18 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = SUPABASE_SERVICE_ROLE_KEY;
 
 const app = express();
 
-app.use(helmet({
-  crossOriginResourcePolicy: { policy: 'cross-origin' },
-  contentSecurityPolicy: {
-    useDefaults: true,
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", 'https://unpkg.com', 'https://cdn.jsdelivr.net', "'unsafe-inline'"],
-      styleSrc: ["'self'", 'https://unpkg.com', 'https://fonts.googleapis.com', "'unsafe-inline'"],
-      imgSrc: ["'self'", 'data:', 'https://tile.openstreetmap.org', 'https://*.tile.openstreetmap.org', 'https://unpkg.com'],
-      fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
-      connectSrc: ["'self'", 'https:'],
-      objectSrc: ["'none'"],
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
+    contentSecurityPolicy: {
+      useDefaults: true,
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", 'https://unpkg.com', 'https://cdn.jsdelivr.net', 'https://cdn.tailwindcss.com', "'unsafe-inline'"],
+        styleSrc: ["'self'", 'https://unpkg.com', 'https://fonts.googleapis.com', "'unsafe-inline'"],
+        imgSrc: ["'self'", 'data:', 'https://tile.openstreetmap.org', 'https://*.tile.openstreetmap.org', 'https://unpkg.com'],
+        fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
+        connectSrc: ["'self'", 'https:'],
+        objectSrc: ["'none'"],
       frameAncestors: ["'self'"],
       upgradeInsecureRequests: []
     }
@@ -196,18 +196,34 @@ app.get('/api/vehicles', requireApiKey, async (req, res) => {
 
 const contractorSchema = z.object({
   id: z.number().int().optional(),
-  name: z.string().min(1),
-  reg_no: z.string().min(1).optional(),
+  name: z.string().min(1, 'Company name is required'),
+  registration_no: z.string().min(1, 'Registration number is required'),
+  contact_person: z.string().optional(),
+  email: z.string().email('Invalid email format').optional().or(z.literal('')),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  service_areas: z.array(z.string()).optional().default([]),
+  specialties: z.array(z.string()).optional().default([]),
+  contract_start: z.string().datetime().optional(),
+  contract_end: z.string().datetime().optional(),
+  monthly_rate: z.number().min(0, 'Monthly rate must be positive').optional(),
+  sla: z.string().optional(),
+  status: z.enum(['active', 'inactive', 'suspended']).default('active'),
   kpi_on_time_rate: z.number().min(0).max(1).optional(),
   kpi_collection_efficiency: z.number().min(0).max(1).optional()
 });
 
 const vehicleSchema = z.object({
   id: z.number().int().optional(),
-  plate: z.string().min(1),
-  type: z.string().min(1),
-  capacity_kg: z.number().int().optional(),
-  contractor_id: z.number().int().optional()
+  plate: z.string().min(1, 'Vehicle registration plate is required'),
+  type: z.string().min(1, 'Vehicle type is required'),
+  capacity_kg: z.number().int().min(1, 'Capacity must be at least 1 kg'),
+  contractor_id: z.number().int().nullable().optional(),
+  year_of_manufacture: z.number().int().min(1900).max(2025).optional(),
+  insurance_expiry: z.string().datetime().optional(),
+  road_tax_expiry: z.string().datetime().optional(),
+  status: z.enum(['active', 'maintenance', 'inactive']).default('active'),
+  traccar_device_id: z.number().int().nullable().optional()
 });
 
 function ensureServiceClient(res) {
@@ -224,9 +240,21 @@ function ensureServiceClient(res) {
 app.post('/api/contractors', requireApiKey, async (req, res) => {
   const sb = ensureServiceClient(res); if (!sb) return;
   const parsed = contractorSchema.safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: 'invalid_payload' });
+  if (!parsed.success) {
+    console.log('Contractor validation error:', parsed.error.issues);
+    return res.status(422).json({ 
+      error: 'validation_failed', 
+      details: parsed.error.issues.map(issue => ({
+        field: issue.path.join('.'),
+        message: issue.message
+      }))
+    });
+  }
   const { data, error } = await sb.from('contractors').insert([parsed.data]).select('*').single();
-  if (error) return res.status(500).json({ error: 'insert_failed' });
+  if (error) {
+    console.error('Contractor insert error:', error);
+    return res.status(500).json({ error: 'insert_failed', details: error.message });
+  }
   res.json(data);
 });
 
@@ -234,9 +262,24 @@ app.put('/api/contractors/:id', requireApiKey, async (req, res) => {
   const sb = ensureServiceClient(res); if (!sb) return;
   const id = Number(req.params.id);
   const parsed = contractorSchema.partial().safeParse(req.body);
-  if (!parsed.success) return res.status(400).json({ error: 'invalid_payload' });
+  if (!parsed.success) {
+    console.log('Contractor validation error:', parsed.error.issues);
+    return res.status(422).json({ 
+      error: 'validation_failed', 
+      details: parsed.error.issues.map(issue => ({
+        field: issue.path.join('.'),
+        message: issue.message
+      }))
+    });
+  }
   const { data, error } = await sb.from('contractors').update(parsed.data).eq('id', id).select('*').single();
-  if (error) return res.status(500).json({ error: 'update_failed' });
+  if (error) {
+    console.error('Contractor update error:', error);
+    if (error.code === 'PGRST116') {
+      return res.status(404).json({ error: 'Contractor not found' });
+    }
+    return res.status(500).json({ error: 'update_failed', details: error.message });
+  }
   res.json(data);
 });
 
@@ -254,7 +297,15 @@ app.post('/api/vehicles', requireApiKey, async (req, res) => {
   // Fallback for when Supabase is not available
   if (!sb) {
     const parsed = vehicleSchema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ error: 'invalid_payload' });
+    if (!parsed.success) {
+      return res.status(422).json({ 
+        error: 'validation_failed', 
+        details: parsed.error.issues.map(issue => ({
+          field: issue.path.join('.'),
+          message: issue.message
+        }))
+      });
+    }
     
     // Create mock vehicle with ID
     const newVehicle = {
@@ -310,6 +361,98 @@ app.get('/api/contractors', requireApiKey, async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: 'Failed to fetch contractors' });
   }
+});
+
+app.get('/api/contractors/:id', requireApiKey, async (req, res) => {
+  const sb = ensureServiceClient(res);
+  if (!sb) return;
+  
+  const id = Number(req.params.id);
+  const { data, error } = await sb.from('contractors').select('*').eq('id', id).single();
+  if (error) {
+    if (error.code === 'PGRST116') {
+      return res.status(404).json({ error: 'Contractor not found' });
+    }
+    return res.status(500).json({ error: 'Failed to fetch contractor' });
+  }
+  res.json(data);
+});
+
+app.get('/api/contractors/:id/vehicles', requireApiKey, async (req, res) => {
+  const sb = ensureServiceClient(res);
+  if (!sb) return;
+  
+  const contractorId = Number(req.params.id);
+  const { data, error } = await sb.from('vehicles').select('*').eq('contractor_id', contractorId);
+  if (error) {
+    return res.status(500).json({ error: 'Failed to fetch contractor vehicles' });
+  }
+  res.json(data || []);
+});
+
+app.get('/api/contractors/:id/audit', requireApiKey, async (req, res) => {
+  const sb = ensureServiceClient(res);
+  if (!sb) return;
+  
+  const contractorId = Number(req.params.id);
+  const { data, error } = await sb
+    .from('audit_logs')
+    .select('*')
+    .eq('contractor_id', contractorId)
+    .order('timestamp', { ascending: false })
+    .limit(50);
+  
+  if (error) {
+    return res.status(500).json({ error: 'Failed to fetch audit trail' });
+  }
+  res.json(data || []);
+});
+
+app.get('/api/vehicles', requireApiKey, async (req, res) => {
+  const sb = ensureServiceClient(res);
+  if (!sb) {
+    return res.json(vehicles); // fallback to static data
+  }
+  
+  const { data, error } = await sb.from('vehicles').select('*');
+  if (error) {
+    return res.status(500).json({ error: 'Failed to fetch vehicles' });
+  }
+  res.json(data || []);
+});
+
+app.get('/api/vehicles/:id', requireApiKey, async (req, res) => {
+  const sb = ensureServiceClient(res);
+  if (!sb) return;
+  
+  const id = Number(req.params.id);
+  const { data, error } = await sb.from('vehicles').select('*').eq('id', id).single();
+  if (error) {
+    if (error.code === 'PGRST116') {
+      return res.status(404).json({ error: 'Vehicle not found' });
+    }
+    return res.status(500).json({ error: 'Failed to fetch vehicle' });
+  }
+  res.json(data);
+});
+
+app.post('/api/audit-log', requireApiKey, async (req, res) => {
+  const sb = ensureServiceClient(res);
+  if (!sb) return;
+  
+  const auditEntry = {
+    contractor_id: req.body.contractor_id,
+    action: req.body.action,
+    description: req.body.description,
+    user: req.body.user,
+    timestamp: new Date().toISOString()
+  };
+  
+  const { data, error } = await sb.from('audit_logs').insert([auditEntry]).select('*').single();
+  if (error) {
+    return res.status(500).json({ error: 'Failed to create audit entry' });
+  }
+  res.json(data);
 });
 
 app.get('/api/metrics', requireApiKey, async (req, res) => {

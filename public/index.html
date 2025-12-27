@@ -9,7 +9,9 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="styles.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♻</text></svg>">
+  <link rel="stylesheet" href="styles-cards.css">
+  <link rel="stylesheet" href="styles-option-b.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♻</text></svg>'>
 </head>
 <body>
   <header class="header">
@@ -20,13 +22,14 @@
       </div>
       <div class="admin-info">
         <span class="label" id="userName">Administrator</span>
-        <span class="role badge" id="userRole">ADMIN</span>
+        <span class="badge" id="userRole">ADMIN</span>
       </div>
     </div>
 
     <div class="header-status-bar">
       <div class="status-message" id="status">
-        <span class="icon">⚠️</span> <span id="statusText">Realtime stream error; switching to polling</span>
+        <span class="icon">⚠️</span>
+        <span id="statusText">Realtime stream error; switching to polling</span>
       </div>
     </div>
 
@@ -37,12 +40,12 @@
         <button id="logoutBtn" class="control-btn">Logout</button>
       </div>
       <div class="control-group">
-        <label class="toggle-control"><input type="checkbox" id="showTrails" /> Traits</label>
+        <label class="toggle-control"><input type="checkbox" id="showTrails" /> Trails</label>
         <label class="toggle-control"><input type="checkbox" id="followDevice" /> Follow</label>
       </div>
       <div class="control-group">
         <select id="deviceSelect" class="control-select"><option value="">Device 1</option></select>
-        <select id="apiEnv" class="control-select"><option value="production">Production</option></select>
+        <select id="apiEnv" class="control-select"><option value="/">Local</option></select>
         <input id="apiKeyInput" type="text" placeholder="dev-key-12345" class="control-input" />
         <button id="saveApi" class="save-btn">Save</button>
       </div>
@@ -50,365 +53,154 @@
   </header>
 
   <main class="main-grid">
-    <!-- Left Column -->
-    <div class="grid-col left-col">
-      <section class="panel alerts-panel">
-        <div id="alerts" class="alerts-list">
-          <!-- Alert Item Example -->
-          <div class="alert-item high">
-            <div class="alert-header">
-              <span class="alert-title">Bin Overflow</span>
-              <span class="alert-time">11:51:48</span>
-            </div>
-            <p class="alert-desc">Bin BIN003 at Penang Times Square is 90% full</p>
+    <!-- Left Column: Overview & Alerts -->
+    <div class="grid-col">
+      <section class="panel" aria-labelledby="overviewHeading">
+        <div class="panel-header">
+          <h2 id="overviewHeading">OVERVIEW</h2>
+        </div>
+        <div class="kpi-cards">
+          <div class="kpi-card">
+            <div id="kpiTotalBins" class="metric">—</div>
+            <div class="label">Total Bins</div>
           </div>
-          <div class="alert-item medium">
-            <div class="alert-header">
-              <span class="alert-title">Bin Overflow</span>
-              <span class="alert-time">11:51:48</span>
-            </div>
-            <p class="alert-desc">Bin BIN001 at Gurney Plaza Entrance is 75% full</p>
+          <div class="kpi-card">
+            <div id="kpiCriticalBins" class="metric critical">—</div>
+            <div class="label">Critical Bins</div>
+          </div>
+          <div class="kpi-card">
+            <div id="kpiHighFillBins" class="metric">—</div>
+            <div class="label">High Fill</div>
+          </div>
+          <div class="kpi-card">
+            <div id="kpiVehiclesService" class="metric">—</div>
+            <div class="label">Active Vehicles</div>
           </div>
         </div>
       </section>
 
-      <section class="panel bins-panel">
+      <section class="panel" aria-labelledby="alertsHeading">
         <div class="panel-header">
-          <h2>SMART BINS</h2>
+          <h2 id="alertsHeading">ALERTS</h2>
+        </div>
+        <div id="alerts" aria-live="polite" aria-label="Alerts"></div>
+      </section>
+
+      <section class="panel" aria-labelledby="selectionHeading">
+        <div class="panel-header">
+          <h2 id="selectionHeading">SELECTION</h2>
+        </div>
+        <div>
+          Selected Bins: <span id="selectedBinCount">0</span>
+        </div>
+        <div id="selectedBinsList"></div>
+        <div class="form">
+          <label>Vehicle</label>
+          <select id="routeVehicleSelect"></select>
+          <label>Contractor</label>
+          <select id="routeContractorSelect"></select>
+        </div>
+        <button id="optimizeRouteBtn" class="btn cyan-btn">Optimize Route</button>
+      </section>
+    </div>
+
+    <!-- Middle Column: Map, Smart Bins, Analytics -->
+    <div class="grid-col">
+      <section class="panel map-panel" aria-labelledby="mapHeading">
+        <div class="panel-header">
+          <h2 id="mapHeading">MAP</h2>
+        </div>
+        <div id="map" aria-label="City map"></div>
+      </section>
+
+      <section class="panel smart-bins-panel" aria-labelledby="smartBinsHeading">
+        <div class="panel-header">
+          <h2 id="smartBinsHeading">SMART BINS</h2>
         </div>
         <div class="bin-filters">
-          <select id="binAreaFilter" class="filter-select"><option>All Areas</option></select>
-          <select id="binStatusFilter" class="filter-select"><option>All Status</option></select>
+          <select id="binAreaFilter" aria-label="Filter bins by area"></select>
+          <select id="binStatusFilter" aria-label="Filter bins by status"></select>
+          <select id="binTypeFilter" aria-label="Filter bins by type"></select>
         </div>
-        <div class="bins-grid" id="smartBins">
-          <!-- Bin Card Example -->
-        </div>
-      </section>
-    </div>
-
-    <!-- Center Column -->
-    <div class="grid-col center-col">
-      <section class="panel map-panel">
-        <div id="map"></div>
+        <div class="bins-grid" id="smartBins" role="list" aria-live="polite" aria-busy="false" aria-label="Smart bins list"></div>
       </section>
 
-      <section class="panel analytics-panel">
+      <section class="panel analytics-panel" aria-labelledby="analyticsHeading">
         <div class="panel-header">
-          <h2>ADVANCED ANALYTICS</h2>
+          <h2 id="analyticsHeading">ANALYTICS</h2>
         </div>
         <div class="charts-grid">
-          <div class="chart-card">
-            <h3>Bin Fill Levels</h3>
-            <canvas id="fillLevelChart"></canvas>
-          </div>
-          <div class="chart-card">
-            <h3>Collection Performance</h3>
-            <canvas id="collectionPerformanceChart"></canvas>
-          </div>
-          <div class="chart-card">
-            <h3>Waste Collection Trends</h3>
-            <canvas id="wasteTrendsChart"></canvas>
-          </div>
-          <div class="chart-card">
-            <h3>Contractor Efficiency</h3>
-            <canvas id="contractorEfficiencyChart"></canvas>
-          </div>
-        </div>
-      </section>
-
-      <section class="panel overview-panel">
-        <div class="panel-header">
-          <h2>OVERVIEW</h2>
-        </div>
-        <div class="kpi-cards" id="kpiOverview">
-          <div class="kpi-card"><div class="metric" id="kpiTotalBins">—</div><div class="label">Total bins</div></div>
-          <div class="kpi-card"><div class="metric critical" id="kpiCriticalBins">—</div><div class="label">Critical bins</div></div>
-          <div class="kpi-card"><div class="metric" id="kpiHighFillBins">—</div><div class="label">High fill bins</div></div>
-          <div class="kpi-card"><div class="metric" id="kpiVehiclesService">—</div><div class="label">Vehicles in service</div></div>
-          <div class="kpi-card"><div class="metric" id="kpiTotalVehicles">—</div><div class="label">Total vehicles</div></div>
-          <div class="kpi-card"><div class="metric" id="kpiActiveContractors">—</div><div class="label">Active contractors</div></div>
-          <div class="kpi-card"><div class="metric" id="kpiPendingTasks">—</div><div class="label">Pending tasks</div></div>
-          <div class="kpi-card"><div class="metric" id="kpiUnreadAlerts">—</div><div class="label">Unread alerts</div></div>
-        </div>
-      </section>
-
-      <section class="panel tasks-panel">
-        <div class="panel-header">
-          <h2>TASKS</h2>
-          <button id="addTaskBtn" class="btn cyan-btn">Add Task</button>
-        </div>
-        <div class="table-wrapper">
-          <table class="table" id="tasksTable">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Task Title</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              <!-- Task items will be rendered here -->
-            </tbody>
-          </table>
+          <div class="chart-card"><canvas id="fillLevelChart"></canvas></div>
+          <div class="chart-card"><canvas id="collectionPerformanceChart"></canvas></div>
+          <div class="chart-card"><canvas id="wasteTrendsChart"></canvas></div>
+          <div class="chart-card"><canvas id="contractorEfficiencyChart"></canvas></div>
         </div>
       </section>
     </div>
 
-    <!-- Right Column -->
-    <div class="grid-col right-col">
-      <section class="panel vehicles-panel">
+    <!-- Right Column: Contractors, Vehicles, Tasks -->
+    <div class="grid-col">
+      <section class="panel contractors-panel" aria-labelledby="contractorsHeading">
         <div class="panel-header">
-          <h2>VEHICLES</h2>
+          <h2 id="contractorsHeading">CONTRACTORS</h2>
         </div>
-        <div id="vehicles" class="list">
-          <!-- Vehicle Item Example -->
+        <div class="contractors-controls">
+          <input id="contractorSearch" class="control-input" placeholder="Search contractors" aria-label="Search contractors" />
+          <select id="contractorStatusFilter" class="control-select" aria-label="Filter by status">
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="suspended">Suspended</option>
+          </select>
+          <select id="contractorSort" class="control-select" aria-label="Sort contractors">
+            <option value="name_asc">Name A–Z</option>
+            <option value="name_desc">Name Z–A</option>
+            <option value="status">Status</option>
+            <option value="vehicles_desc">Vehicles ↓</option>
+            <option value="vehicles_asc">Vehicles ↑</option>
+          </select>
         </div>
+        <div id="contractors" class="list contractors-list" role="list" aria-live="polite" aria-busy="false" aria-label="Contractors list"></div>
+        <button id="addContractorBtn" class="btn cyan-btn">Add Contractor</button>
+      </section>
+
+      <section class="panel vehicles-panel" aria-labelledby="vehiclesHeading">
+        <div class="panel-header">
+          <h2 id="vehiclesHeading">VEHICLES</h2>
+        </div>
+        <div id="vehicles" role="list" aria-live="polite" aria-busy="false" aria-label="Vehicles list"></div>
         <button id="addVehicleBtn" class="btn cyan-btn">Add Vehicle</button>
       </section>
 
-      <section class="panel contractors-panel">
+      <section class="panel tasks-panel" aria-labelledby="tasksHeading">
         <div class="panel-header">
-          <h2>CONTRACTORS</h2>
+          <h2 id="tasksHeading">COLLECTION TASKS</h2>
         </div>
-        <div id="contractors" class="list">
-          <!-- Contractor Item Example -->
-        </div>
-        <button id="addContractorBtn" class="btn cyan-btn">Add Contractor</button>
+        <table id="collectionTasksTable" class="table">
+          <thead>
+            <tr>
+              <th>Task</th>
+              <th>Status</th>
+              <th>Vehicle</th>
+              <th>Contractor</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <button id="addTaskBtn" class="btn cyan-btn">Add Task</button>
       </section>
     </div>
   </main>
 
-  <!-- Updated Indicator -->
   <div class="update-indicator" id="updateIndicator">
     <span class="pulse"></span>
     Last Updated: <span id="updatedAt">Loading...</span>
   </div>
 
-    <div class="modal" id="vehicleManageModal">
-      <header>
-        <h3>New Vehicle</h3>
-        <button id="vehicleManageClose" class="btn secondary">Close</button>
-      </header>
-      <div class="content">
-        <div class="panel">
-          <h2>Details</h2>
-          <div class="form">
-            <label>Vehicle Registration Plate <input id="vPlate" /></label>
-            <label>Type <input id="vType" /></label>
-            <label>Capacity (kg) <input id="vCap" type="number" /></label>
-            <label>Contractor <select id="vContractor"></select></label>
-          </div>
-        </div>
-      </div>
-      <div class="actions">
-        <button id="vehicleManageSave" class="btn">Save</button>
-      </div>
-    </div>
-
-    <div class="modal" id="taskManageModal">
-      <header>
-        <h3>New Task</h3>
-        <button id="taskManageClose" class="btn secondary">Close</button>
-      </header>
-      <div class="content">
-        <div class="panel">
-          <h2>Task Details</h2>
-          <div class="form">
-            <label>Task Title <input id="tTitle" /></label>
-            <label>Description <textarea id="tDescription" rows="3"></textarea></label>
-            <label>Priority 
-              <select id="tPriority">
-                <option value="low">Low</option>
-                <option value="medium" selected>Medium</option>
-                <option value="high">High</option>
-                <option value="urgent">Urgent</option>
-              </select>
-            </label>
-            <label>Assigned Vehicle 
-              <select id="tVehicle">
-                <option value="">Select Vehicle</option>
-              </select>
-            </label>
-            <label>Assigned Contractor 
-              <select id="tContractor">
-                <option value="">Select Contractor</option>
-              </select>
-            </label>
-            <label>Scheduled Date & Time <input id="tScheduled" type="datetime-local" /></label>
-            <label>Bin ID <input id="tBinId" placeholder="e.g., BIN001" /></label>
-          </div>
-        </div>
-      </div>
-      <div class="actions">
-        <button id="taskManageSave" class="btn">Save</button>
-      </div>
-    </div>
-    
-    <!-- Enhanced Contractor Settings Modal -->
-    <div class="modal-backdrop" id="modalBackdrop"></div>
-    <div class="modal contractor-settings-modal" id="contractorSettingsModal">
-      <header>
-        <h3 id="contractorSettingsTitle">Contractor Settings</h3>
-        <button id="contractorSettingsClose" class="btn secondary">Close</button>
-      </header>
-      <div class="content">
-        <div class="contractor-settings-tabs">
-          <button class="tab-btn active" data-tab="details">Details</button>
-          <button class="tab-btn" data-tab="vehicles">Vehicles</button>
-          <button class="tab-btn" data-tab="audit">Audit Trail</button>
-        </div>
-        
-        <!-- Details Tab -->
-        <div class="tab-content active" id="detailsTab">
-          <div class="panel">
-            <h2>Basic Information</h2>
-            <div class="form">
-              <input type="hidden" id="contractorId" />
-              <label>Company Name <input id="cName" required /></label>
-              <label>Registration Number <input id="cRegNo" required /></label>
-              <label>Contact Person <input id="cContactPerson" /></label>
-              <label>Email <input id="cEmail" type="email" /></label>
-              <label>Phone <input id="cPhone" type="tel" /></label>
-              <label>Address <textarea id="cAddress" rows="3"></textarea></label>
-            </div>
-          </div>
-          
-          <div class="panel">
-            <h2>Service Areas & Specialties</h2>
-            <div class="form">
-              <label>Service Areas
-                <select id="cServiceAreas" multiple>
-                  <option value="georgetown">Georgetown</option>
-                  <option value="bayan_lepas">Bayan Lepas</option>
-                  <option value="tanjong_tokong">Tanjong Tokong</option>
-                  <option value="gurney_drive">Gurney Drive</option>
-                  <option value="batu_ferringhi">Batu Ferringhi</option>
-                </select>
-              </label>
-              <label>Specialties
-                <select id="cSpecialties" multiple>
-                  <option value="residential">Residential Collection</option>
-                  <option value="commercial">Commercial Collection</option>
-                  <option value="industrial">Industrial Waste</option>
-                  <option value="recycling">Recycling Services</option>
-                  <option value="hazardous">Hazardous Waste</option>
-                </select>
-              </label>
-            </div>
-          </div>
-          
-          <div class="panel">
-            <h2>Contract Terms</h2>
-            <div class="form">
-              <label>Contract Start Date <input id="cContractStart" type="date" /></label>
-              <label>Contract End Date <input id="cContractEnd" type="date" /></label>
-              <label>Monthly Rate (RM) <input id="cMonthlyRate" type="number" step="0.01" /></label>
-              <label>Service Level Agreement <textarea id="cSLA" rows="3"></textarea></label>
-              <label>Status
-                <select id="cStatus">
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                  <option value="suspended">Suspended</option>
-                </select>
-              </label>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Vehicles Tab -->
-        <div class="tab-content" id="vehiclesTab">
-          <div class="panel">
-            <div class="panel-header">
-              <h2>Vehicle Fleet</h2>
-              <button id="addVehicleToContractor" class="btn cyan-btn">Add Vehicle</button>
-            </div>
-            <div class="vehicles-list" id="contractorVehiclesList">
-              <!-- Vehicles will be rendered here -->
-            </div>
-          </div>
-        </div>
-        
-        <!-- Audit Trail Tab -->
-        <div class="tab-content" id="auditTab">
-          <div class="panel">
-            <h2>Audit Trail</h2>
-            <div class="audit-list" id="contractorAuditList">
-              <!-- Audit entries will be rendered here -->
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="actions">
-        <button id="contractorSettingsDelete" class="btn danger-btn">Delete Contractor</button>
-        <button id="contractorSettingsSave" class="btn">Save Changes</button>
-      </div>
-    </div>
-
-    <!-- Vehicle Management Modal -->
-    <div class="modal" id="vehicleManageModal">
-      <header>
-        <h3 id="vehicleManageTitle">New Vehicle</h3>
-        <button id="vehicleManageClose" class="btn secondary">Close</button>
-      </header>
-      <div class="content">
-        <div class="panel">
-          <h2>Vehicle Details</h2>
-          <div class="form">
-            <input type="hidden" id="vId" />
-            <input type="hidden" id="vContractorId" />
-            <label>Vehicle Registration Plate <input id="vPlate" required /></label>
-            <label>Type
-              <select id="vType" required>
-                <option value="Compactor">Compactor</option>
-                <option value="Tipper">Tipper</option>
-                <option value="Skip Loader">Skip Loader</option>
-                <option value="Recycling Truck">Recycling Truck</option>
-                <option value="Hazardous Waste Vehicle">Hazardous Waste Vehicle</option>
-              </select>
-            </label>
-            <label>Capacity (kg) <input id="vCap" type="number" required min="1" /></label>
-            <label>Year of Manufacture <input id="vYear" type="number" min="1900" max="2025" /></label>
-            <label>Insurance Expiry <input id="vInsuranceExpiry" type="date" /></label>
-            <label>Road Tax Expiry <input id="vRoadTaxExpiry" type="date" /></label>
-            <label>Status
-              <select id="vStatus">
-                <option value="active">Active</option>
-                <option value="maintenance">Under Maintenance</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </label>
-            <label>Traccar Device ID <input id="vTraccarDeviceId" type="number" /></label>
-          </div>
-        </div>
-      </div>
-      <div class="actions">
-        <button id="vehicleManageDelete" class="btn danger-btn" style="display:none;">Delete Vehicle</button>
-        <button id="vehicleManageSave" class="btn">Save</button>
-      </div>
-    </div>
-
-  <script src="/config.js"></script>
-  <script>
-    // Check authentication
-    if (!localStorage.getItem('authToken')) {
-      window.location.href = '/login';
-    }
-    
-    // Set auth header for API calls
-    const authToken = localStorage.getItem('authToken');
-    if (authToken) {
-      window.APP_CONFIG = window.APP_CONFIG || {};
-      window.APP_CONFIG.authToken = authToken;
-    }
-  </script>
-  <div id="notification" class="notification"></div>
-
-  <!-- Loading Overlay -->
-  <div id="loadingOverlay" class="loading-overlay">
-    <div class="loading-spinner"></div>
-    <div class="loading-text">Processing...</div>
+  <div id="loadingOverlay" class="loading-overlay" hidden>
+    <div class="spinner"></div>
   </div>
 
-  <script src="/app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

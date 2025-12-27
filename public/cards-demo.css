@@ -1,0 +1,9 @@
+/* Card Design Demo – Use with .bins-grid or .contractors-list */
+.bins-grid.demo-card-a .bin-card { @extend .card-a; }
+.contractors-list.demo-card-a .contractor-card { @extend .card-a; }
+
+.bins-grid.demo-card-b .bin-card { @extend .card-b; }
+.contractors-list.demo-card-b .contractor-card { @extend .card-b; }
+
+.bins-grid.demo-card-c .bin-card { @extend .card-c; }
+.contractors-list.demo-card-c .contractor-card { @extend .card-c; }

@@ -1,0 +1,191 @@
+/* Card Design Option A – Minimalist */
+.card-a {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+  cursor: pointer;
+  text-align: center;
+}
+
+.card-a:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-md);
+}
+
+.card-a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
+}
+
+.card-a-icon {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.card-a-metric {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.card-a-meta {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Card Design Option B – Compact Grid with Status Bars */
+.card-b {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.card-b:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-md);
+}
+
+.card-b:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.2);
+}
+
+.card-b-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-b-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.card-b-status-bar {
+  height: 6px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.card-b-status-fill {
+  height: 100%;
+  transition: width 0.3s ease-out;
+}
+
+.card-b-status-fill.critical { background: #ef4444; }
+.card-b-status-fill.high { background: #f59e0b; }
+.card-b-status-fill.medium { background: #10b981; }
+.card-b-status-fill.normal { background: #6b7280; }
+
+.card-b-meta {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* Card Design Option C – Enhanced with Subtle Gradients */
+.card-c {
+  background: linear-gradient(145deg, var(--card), rgba(30, 41, 59, 0.95));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.card-c::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-light));
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.card-c:hover {
+  transform: translateY(-3px);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-lg);
+}
+
+.card-c:hover::before {
+  opacity: 1;
+}
+
+.card-c:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px rgba(6, 182, 212, 0.3);
+}
+
+.card-c-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 182, 212, 0.08);
+  border-radius: 50%;
+  margin-bottom: 4px;
+}
+
+.card-c-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.card-c-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.card-c-meta {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+/* Print-friendly styles */
+@media print {
+  .card-a, .card-b, .card-c {
+    break-inside: avoid;
+    box-shadow: none;
+    border: 1pt solid #000;
+    background: #fff !important;
+    color: #000 !important;
+  }
+  .card-a::before, .card-c::before {
+    display: none;
+  }
+  .card-a, .card-b, .card-c {
+    page-break-inside: avoid;
+  }
+}

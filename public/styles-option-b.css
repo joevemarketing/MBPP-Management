@@ -1,0 +1,12 @@
+/* Apply Option B – Compact Grid with Status Bars as default */
+.bins-grid .bin-card { @apply card-b; }
+.contractors-list .contractor-card { @apply card-b; }
+
+/* Enhance existing base cards with Option B specifics */
+.bin-card {
+  @apply card-b;
+}
+
+.contractor-card {
+  @apply card-b;
+}
