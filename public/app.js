@@ -1695,11 +1695,15 @@ const charts = {};
       { id: 2, bin_id: 'BIN003', task_type: 'collection', status: 'pending', priority: 'critical', scheduled_time: new Date().toISOString() }
     ];
 
-    // Update KPIs
-    if (kpiTotalBins) kpiTotalBins.textContent = demoDashboardSummary.overview.total_bins;
-    if (kpiCriticalBins) kpiCriticalBins.textContent = demoDashboardSummary.overview.critical_bins;
-    if (kpiPendingTasks) kpiPendingTasks.textContent = demoDashboardSummary.overview.pending_tasks;
-    if (kpiUnreadAlerts) kpiUnreadAlerts.textContent = demoDashboardSummary.overview.unread_alerts;
+    // Update KPIs (with null checks)
+    try {
+      if (kpiTotalBins) kpiTotalBins.textContent = demoDashboardSummary.overview.total_bins;
+      if (kpiCriticalBins) kpiCriticalBins.textContent = demoDashboardSummary.overview.critical_bins;
+      if (kpiPendingTasks) kpiPendingTasks.textContent = demoDashboardSummary.overview.pending_tasks;
+      if (kpiUnreadAlerts) kpiUnreadAlerts.textContent = demoDashboardSummary.overview.unread_alerts;
+    } catch (domError) {
+      console.warn('Failed to update KPI elements:', domError);
+    }
 
     // Update data lists
     smartBinsList = demoSmartBins;
