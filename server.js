@@ -13,6 +13,16 @@ const { getVehiclesAsync, getContractorsAsync, getMetrics } = require('./service
 const tasks = require('./data/tasks.json');
 const { supabaseService } = require('./services/supabase');
 
+// Configure Supabase for Vercel deployment
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://ayvthpivjwbdmnrqujdv.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5dnRocGl2andiZG1ucnF1amR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzNTE5MTksImV4cCI6MjA0MDkyNzkxOX0.jWOG1jR9TMYvb3whWubSDfMnCQN9qQJnL6j9NoMaEPM';
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF5dnRocGl2andiZG1ucnF1amR2Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2NTM1MTkxOSwiZXhwIjoyMDgwOTI3OTE5fQ.pOQfBPPAdJzL2gWie-CCrzZobZ7wnGZ55Y6BfZJSh1E';
+
+// Set environment variables for Supabase service
+process.env.SUPABASE_URL = SUPABASE_URL;
+process.env.SUPABASE_ANON_KEY = SUPABASE_ANON_KEY;
+process.env.SUPABASE_SERVICE_ROLE_KEY = SUPABASE_SERVICE_ROLE_KEY;
+
 const app = express();
 
 app.use(helmet({
